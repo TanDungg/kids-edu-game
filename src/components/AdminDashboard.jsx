@@ -1,0 +1,2364 @@
+import React, { useState, useRef } from 'react';
+import { 
+  ArrowLeft, Plus, Trash2, Sparkles, Volume2, PackagePlus, 
+  RotateCcw, CheckCircle2, FileSpreadsheet, Download, Upload, Smile,
+  LayoutDashboard, BookOpen, Calculator, Brain, Dog, ShoppingBag, 
+  User, Database, RefreshCw, BarChart3, Copy, Check, Info, Coins, Star, Trophy, Search, Activity, PieChart, Users
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import * as XLSX from 'xlsx';
+import EmojiPicker from 'emoji-picker-react';
+import { dataManager, PRESET_PACKS } from '../services/dataManager';
+import { sounds } from '../utils/sound';
+import { autoDetectEmoji } from '../utils/emojiDetector';
+import { supabaseService } from '../services/supabase';
+
+export default function AdminDashboard({ 
+  onBack, 
+  onDataChanged, 
+  playerData = {}, 
+  onUpdatePlayerData, 
+  onResetAllData 
+}) {
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'language' | 'math' | 'logic' | 'pet' | 'player' | 'cloud'
+
+  // Master Collections
+  const [words, setWords] = useState(() => dataManager.getWords());
+  const [mathLevels, setMathLevels] = useState(() => dataManager.getMathLevels());
+  const [logicLevels, setLogicLevels] = useState(() => dataManager.getLogicLevels());
+  const [pets, setPets] = useState(() => dataManager.getPets());
+  const [shopItems, setShopItems] = useState(() => dataManager.getShopItems());
+
+  // Form States - Language
+  const [wordForm, setWordForm] = useState({ vn: '', en: '', emoji: '⭐', theme: 'Động vật', hintVN: '', hintEN: '' });
+  const [isAutoEmoji, setIsAutoEmoji] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Form States - Math
+  const [mathForm, setMathForm] = useState({
+    type: 'count', // 'count' | 'addition' | 'compare'
+    title: '',
+    promptVN: '',
+    promptEN: '',
+    itemEmoji: '🍎',
+    targetCount: 4,
+    num1: 3,
+    num2: 2,
+    sideACount: 3,
+    sideBCount: 5,
+    options: '2, 3, 4, 5',
+    answer: '4'
+  });
+
+  // Form States - Logic
+  const [logicForm, setLogicForm] = useState({
+    type: 'pattern', // 'pattern' | 'odd_one_out'
+    title: '',
+    promptVN: '',
+    promptEN: '',
+    sequence: '🍎, 🍏, 🍎, 🍏',
+    options: '🍎, 🍌, 🍇, 🍉',
+    answer: '🍎',
+    hint: ''
+  });
+
+  // Form States - Pet & Shop
+  const [petForm, setPetForm] = useState({ name: '', emoji: '🐰', sound: 'Khịt khịt!' });
+  const [shopForm, setShopForm] = useState({ name: '', type: 'food', emoji: '🍎', price: 10, hungerBoost: 25 });
+
+  // Player Adjust Form
+  const [playerEdit, setPlayerEdit] = useState({
+    stars: playerData.stars || 5,
+    coins: playerData.coins || 30,
+    level: playerData.level || 1
+  });
+
+  // Feedback & File Upload
+  const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [isCopiedSQL, setIsCopiedSQL] = useState(false);
+  const fileInputRef = useRef(null);
+  const backupInputRef = useRef(null);
+
+  // Cloud Database Players & Logs
+  const [cloudUsers, setCloudUsers] = useState([]);
+  const [learningLogs, setLearningLogs] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  const [selectedPlayerName, setSelectedPlayerName] = useState('');
+
+  // Table Filters & Search
+  const [vocabSearch, setVocabSearch] = useState('');
+  const [vocabThemeFilter, setVocabThemeFilter] = useState('all');
+  const [mathSearch, setMathSearch] = useState('');
+  const [mathTypeFilter, setMathTypeFilter] = useState('all');
+  const [logicSearch, setLogicSearch] = useState('');
+  const [logicTypeFilter, setLogicTypeFilter] = useState('all');
+
+  const fetchCloudUserData = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const data = await supabaseService.fetchAllPlayersWithProgress();
+      setCloudUsers(data.players || []);
+      setLearningLogs(data.logs || []);
+    } catch (e) {
+      console.warn('Lỗi tải người chơi:', e);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchCloudUserData();
+  }, []);
+
+  // Helper trigger notification
+  const notify = (msg) => {
+    setFeedbackMsg(msg);
+    setTimeout(() => setFeedbackMsg(''), 5000);
+  };
+
+  // Đồng bộ trực tiếp từ Database
+  const handleSyncDatabase = async () => {
+    sounds.playClick();
+    notify('Đang tải dữ liệu từ Supabase Database...');
+    const refreshed = await dataManager.refreshFromDatabase();
+    setWords([...refreshed.words]);
+    setMathLevels([...refreshed.mathLevels]);
+    setLogicLevels([...refreshed.logicLevels]);
+    setPets([...refreshed.pets]);
+    setShopItems([...refreshed.shopItems]);
+    await fetchCloudUserData();
+    sounds.playSuccess();
+    notify(`Đồng bộ thành công từ Database: ${refreshed.words.length} từ vựng, ${refreshed.mathLevels.length} câu toán! 🚀`);
+    if (onDataChanged) onDataChanged();
+  };
+
+  // ===================== 1. XỬ LÝ TỪ VỰNG =====================
+  const handleVNChange = (e) => {
+    const val = e.target.value;
+    const detected = autoDetectEmoji(val, wordForm.en);
+    const hasDetected = detected !== '⭐';
+    setWordForm(prev => ({
+      ...prev,
+      vn: val,
+      emoji: hasDetected ? detected : prev.emoji
+    }));
+    if (hasDetected) setIsAutoEmoji(true);
+  };
+
+  const handleENChange = (e) => {
+    const val = e.target.value;
+    const detected = autoDetectEmoji(wordForm.vn, val);
+    const hasDetected = detected !== '⭐';
+    setWordForm(prev => ({
+      ...prev,
+      en: val,
+      emoji: hasDetected ? detected : prev.emoji
+    }));
+    if (hasDetected) setIsAutoEmoji(true);
+  };
+
+  const handleAddWord = async (e) => {
+    e.preventDefault();
+    if (!wordForm.vn.trim() || !wordForm.en.trim()) {
+      sounds.playError();
+      notify('Vui lòng nhập đầy đủ tên Tiếng Việt và Tiếng Anh!');
+      return;
+    }
+    sounds.playSuccess();
+    notify('Đang lưu vào Supabase Database...');
+    const created = await dataManager.addWord(wordForm);
+    setWords([...dataManager.getWords()]);
+    setWordForm({ vn: '', en: '', emoji: '⭐', theme: 'Động vật', hintVN: '', hintEN: '' });
+    setIsAutoEmoji(false);
+    setShowEmojiPicker(false);
+    notify(`Đã lưu thành công vào Database từ: "${created.vn} - ${created.en}" 🎉`);
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleDeleteWord = async (id, name) => {
+    sounds.playClick();
+    if (window.confirm(`Xóa từ "${name}" khỏi database?`)) {
+      const updated = await dataManager.deleteWord(id);
+      setWords([...updated]);
+      notify(`Đã xóa từ "${name}" khỏi database!`);
+      if (onDataChanged) onDataChanged();
+    }
+  };
+
+  const handleAddPack = async (packKey) => {
+    sounds.playSuccess();
+    sounds.playCoin();
+    notify('Đang lưu bộ đề vào Supabase Database...');
+    const pack = PRESET_PACKS[packKey];
+    if (pack && Array.isArray(pack.items)) {
+      await dataManager.importFromRows(pack.items);
+      setWords([...dataManager.getWords()]);
+      notify(`Đã nạp bộ đề "${pack.name}" vào Database thành công! 🚀`);
+      if (onDataChanged) onDataChanged();
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingFile(true);
+    sounds.playClick();
+    notify('Đang đọc file và lưu vào Supabase Database...');
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (!data || data.length === 0) {
+          sounds.playError();
+          notify('File Excel không có dữ liệu hợp lệ!');
+          setIsProcessingFile(false);
+          return;
+        }
+
+        const addedCount = await dataManager.importFromRows(data);
+        setWords([...dataManager.getWords()]);
+        sounds.playSuccess();
+        sounds.playCheer();
+        notify(`Thành công! Đã nạp ${addedCount} từ vựng vào Supabase Database! 🎉`);
+        if (onDataChanged) onDataChanged();
+      } catch (err) {
+        sounds.playError();
+        notify(`Lỗi khi đọc file: ${err.message}`);
+      } finally {
+        setIsProcessingFile(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // ===================== 2. XỬ LÝ TOÁN HỌC =====================
+  const handleAddMath = async (e) => {
+    e.preventDefault();
+    if (!mathForm.title || !mathForm.promptVN || !mathForm.answer) {
+      sounds.playError();
+      notify('Vui lòng nhập đầy đủ tiêu đề, câu hỏi và đáp án đúng!');
+      return;
+    }
+
+    const opts = mathForm.options.split(',').map(s => s.trim()).filter(Boolean);
+    const item = {
+      type: mathForm.type,
+      title: mathForm.title,
+      promptVN: mathForm.promptVN,
+      promptEN: mathForm.promptEN || mathForm.promptVN,
+      itemEmoji: mathForm.itemEmoji || '🍎',
+      options: opts.length > 0 ? opts : [1, 2, 3, 4],
+      answer: isNaN(Number(mathForm.answer)) ? mathForm.answer : Number(mathForm.answer)
+    };
+
+    if (mathForm.type === 'count') {
+      item.targetCount = Number(mathForm.targetCount) || 4;
+    } else if (mathForm.type === 'addition') {
+      item.num1 = Number(mathForm.num1) || 2;
+      item.num2 = Number(mathForm.num2) || 3;
+    }
+
+    await dataManager.addMathLevel(item);
+    setMathLevels([...dataManager.getMathLevels()]);
+    sounds.playSuccess();
+    notify(`Đã thêm câu hỏi Toán vào Database: "${item.title}"! ➕`);
+    setMathForm({
+      type: 'count',
+      title: '',
+      promptVN: '',
+      promptEN: '',
+      itemEmoji: '🍎',
+      targetCount: 4,
+      num1: 3,
+      num2: 2,
+      sideACount: 3,
+      sideBCount: 5,
+      options: '2, 3, 4, 5',
+      answer: '4'
+    });
+  };
+
+  const handleDeleteMath = async (id) => {
+    sounds.playClick();
+    if (window.confirm('Xóa câu hỏi Toán này khỏi Database?')) {
+      const updated = await dataManager.deleteMathLevel(id);
+      setMathLevels([...updated]);
+      notify('Đã xóa câu hỏi toán khỏi Database!');
+    }
+  };
+
+  // ===================== 3. XỬ LÝ LOGIC =====================
+  const handleAddLogic = (e) => {
+    e.preventDefault();
+    if (!logicForm.title || !logicForm.promptVN || !logicForm.answer) {
+      sounds.playError();
+      notify('Vui lòng nhập đầy đủ tiêu đề, câu hỏi và đáp án đúng!');
+      return;
+    }
+
+    const item = {
+      type: logicForm.type,
+      title: logicForm.title,
+      promptVN: logicForm.promptVN,
+      promptEN: logicForm.promptEN || logicForm.promptVN,
+      sequence: logicForm.sequence.split(',').map(s => s.trim()).filter(Boolean),
+      options: logicForm.options.split(',').map(s => s.trim()).filter(Boolean),
+      answer: logicForm.answer.trim(),
+      hint: logicForm.hint
+    };
+
+    dataManager.addLogicLevel(item);
+    setLogicLevels(dataManager.getLogicLevels());
+    sounds.playSuccess();
+    notify(`Đã thêm câu đố tư duy: "${item.title}" thành công! 🧩`);
+    setLogicForm({
+      type: 'pattern',
+      title: '',
+      promptVN: '',
+      promptEN: '',
+      sequence: '🍎, 🍏, 🍎, 🍏',
+      options: '🍎, 🍌, 🍇, 🍉',
+      answer: '🍎',
+      hint: ''
+    });
+  };
+
+  const handleDeleteLogic = (id) => {
+    sounds.playClick();
+    if (window.confirm('Xóa câu đố Logic này?')) {
+      const updated = dataManager.deleteLogicLevel(id);
+      setLogicLevels(updated);
+      notify('Đã xóa câu đố logic!');
+    }
+  };
+
+  // ===================== 4. XỬ LÝ PET & SHOP =====================
+  const handleAddPet = (e) => {
+    e.preventDefault();
+    if (!petForm.name.trim()) return;
+    dataManager.addPet(petForm);
+    setPets(dataManager.getPets());
+    sounds.playSuccess();
+    notify(`Đã thêm bạn thú cưng: "${petForm.name}"! 🐾`);
+    setPetForm({ name: '', emoji: '🐰', sound: 'Khịt khịt!' });
+  };
+
+  const handleDeletePet = (id) => {
+    sounds.playClick();
+    if (pets.length <= 1) {
+      sounds.playError();
+      notify('Game cần ít nhất 1 thú cưng để hoạt động!');
+      return;
+    }
+    const updated = dataManager.deletePet(id);
+    setPets(updated);
+    notify('Đã xóa thú cưng!');
+  };
+
+  const handleAddShop = (e) => {
+    e.preventDefault();
+    if (!shopForm.name.trim()) return;
+    dataManager.addShopItem(shopForm);
+    setShopItems(dataManager.getShopItems());
+    sounds.playSuccess();
+    notify(`Đã thêm vật phẩm: "${shopForm.name}" vào cửa hàng! 🛍️`);
+    setShopForm({ name: '', type: 'food', emoji: '🍎', price: 10, hungerBoost: 25 });
+  };
+
+  const handleDeleteShop = (id) => {
+    sounds.playClick();
+    const updated = dataManager.deleteShopItem(id);
+    setShopItems(updated);
+    notify('Đã xóa vật phẩm khỏi cửa hàng!');
+  };
+
+  // ===================== 5. HỒ SƠ BÉ =====================
+  const handleSavePlayer = async (e) => {
+    e.preventDefault();
+    sounds.playSuccess();
+
+    if (selectedPlayerId) {
+      await supabaseService.syncProgress({
+        stars: Number(playerEdit.stars),
+        coins: Number(playerEdit.coins),
+        level: Number(playerEdit.level)
+      }, selectedPlayerId);
+      await fetchCloudUserData();
+      notify(`Đã cập nhật chỉ số của ${selectedPlayerName || 'học sinh'} lên Database thành công! ⭐`);
+    } else {
+      if (onUpdatePlayerData) {
+        onUpdatePlayerData({
+          stars: Number(playerEdit.stars),
+          coins: Number(playerEdit.coins),
+          level: Number(playerEdit.level)
+        });
+      }
+      notify('Đã cập nhật chỉ số của bé thành công! ⭐');
+    }
+  };
+
+  // ===================== 6. FULL BACKUP & RESTORE =====================
+  const handleBackupExport = () => {
+    sounds.playSuccess();
+    dataManager.exportFullBackupJSON();
+    notify('Đã xuất file sao lưu toàn bộ game thành công! 📦');
+  };
+
+  const handleBackupImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target?.result;
+        const ok = dataManager.importFullBackupJSON(text);
+        if (ok) {
+          sounds.playSuccess();
+          setWords(dataManager.getWords());
+          setMathLevels(dataManager.getMathLevels());
+          setLogicLevels(dataManager.getLogicLevels());
+          setPets(dataManager.getPets());
+          setShopItems(dataManager.getShopItems());
+          notify('Khôi phục toàn bộ dữ liệu game thành công! 🎉');
+          if (onDataChanged) onDataChanged();
+        } else {
+          sounds.playError();
+          notify('File sao lưu JSON không đúng định dạng!');
+        }
+      } catch (err) {
+        sounds.playError();
+        notify(`Lỗi khôi phục: ${err.message}`);
+      } finally {
+        if (backupInputRef.current) backupInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleResetAll = () => {
+    sounds.playClick();
+    if (window.confirm('CẢNH BÁO: Khôi phục tất cả dữ liệu (Từ vựng, Toán, Logic, Pet, Shop) về trạng thái mặc định ban đầu?')) {
+      const res = dataManager.resetAllToDefaults();
+      setWords(res.words);
+      setMathLevels(res.mathLevels);
+      setLogicLevels(res.logicLevels);
+      setPets(res.pets);
+      setShopItems(res.shopItems);
+      if (onResetAllData) onResetAllData();
+      sounds.playSuccess();
+      notify('Toàn bộ hệ thống đã được khôi phục về cài đặt gốc!');
+      if (onDataChanged) onDataChanged();
+    }
+  };
+
+  const copySQL = () => {
+    const sql = `-- 1. BẢNG TỪ VỰNG NGÔN NGỮ (Language Valley)
+CREATE TABLE IF NOT EXISTS public.game_vocabulary (
+  id BIGSERIAL PRIMARY KEY,
+  vn TEXT NOT NULL,
+  en TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '⭐',
+  theme TEXT DEFAULT 'Tổng hợp',
+  target_vn TEXT,
+  target_en TEXT,
+  hint_vn TEXT,
+  hint_en TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. BẢNG TOÁN HỌC (Math Farm)
+CREATE TABLE IF NOT EXISTS public.game_math (
+  id BIGSERIAL PRIMARY KEY,
+  type TEXT NOT NULL DEFAULT 'count',
+  title TEXT NOT NULL,
+  prompt_vn TEXT NOT NULL,
+  prompt_en TEXT,
+  item_emoji TEXT DEFAULT '🍎',
+  target_count INTEGER,
+  num1 INTEGER,
+  num2 INTEGER,
+  options JSONB DEFAULT '[]'::jsonb,
+  answer TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. BẢNG TƯ DUY & LOGIC (Logic Tower)
+CREATE TABLE IF NOT EXISTS public.game_logic (
+  id BIGSERIAL PRIMARY KEY,
+  type TEXT NOT NULL DEFAULT 'pattern',
+  title TEXT NOT NULL,
+  prompt_vn TEXT NOT NULL,
+  prompt_en TEXT,
+  sequence JSONB DEFAULT '[]'::jsonb,
+  options JSONB DEFAULT '[]'::jsonb,
+  answer TEXT NOT NULL,
+  hint TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. BẢNG THÚ CƯNG (Pet Sanctuary)
+CREATE TABLE IF NOT EXISTS public.game_pets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  sound TEXT NOT NULL,
+  hunger INTEGER DEFAULT 80,
+  happiness INTEGER DEFAULT 90,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5. BẢNG CỬA HÀNG VẬT PHẨM (Shop Items)
+CREATE TABLE IF NOT EXISTS public.game_shop (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'food',
+  emoji TEXT NOT NULL,
+  price INTEGER DEFAULT 10,
+  hunger_boost INTEGER DEFAULT 25,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- BẬT RLS CHO CÁC BẢNG
+ALTER TABLE public.game_vocabulary ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public vocabulary" ON public.game_vocabulary FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_math ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public math" ON public.game_math FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_logic ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public logic" ON public.game_logic FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_pets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public pets" ON public.game_pets FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_shop ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (true) WITH CHECK (true);`;
+    navigator.clipboard.writeText(sql);
+    setIsCopiedSQL(true);
+    sounds.playCoin();
+    setTimeout(() => setIsCopiedSQL(false), 3000);
+  };
+
+  return (
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px' }}>
+      {/* Top Navbar */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        marginBottom: '20px', 
+        flexWrap: 'wrap', 
+        gap: '14px',
+        background: '#ffffff',
+        padding: '16px 20px',
+        borderRadius: '24px',
+        border: '3px solid #e2e8f0',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.04)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '8px 18px', fontSize: '14px' }}>
+            <ArrowLeft size={16} />
+            <span>Quay Lại Game</span>
+          </button>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+              🛡️ Cổng Quản Trị Hệ Thống (Kids Edu Admin)
+            </h2>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              Quản lý toàn bộ câu hỏi, toán học, tư duy, thú cưng trực tiếp trên Supabase Database
+            </div>
+          </div>
+        </div>
+
+        {/* Global Action Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={handleSyncDatabase} 
+            className="btn-kid btn-green" 
+            style={{ padding: '8px 14px', fontSize: '12px' }}
+            title="Đồng bộ kéo dữ liệu mới nhất từ Supabase Database về"
+          >
+            <RefreshCw size={14} />
+            <span>Tải Từ Database</span>
+          </button>
+
+          <input
+            type="file"
+            ref={backupInputRef}
+            onChange={handleBackupImport}
+            accept=".json"
+            style={{ display: 'none' }}
+          />
+
+          <button 
+            onClick={handleBackupExport} 
+            className="btn-kid btn-purple" 
+            style={{ padding: '8px 14px', fontSize: '12px' }}
+            title="Tải về file JSON sao lưu toàn bộ dữ liệu game"
+          >
+            <Download size={14} />
+            <span>Sao Lưu (JSON)</span>
+          </button>
+
+          <button 
+            onClick={() => backupInputRef.current?.click()} 
+            className="btn-kid btn-blue" 
+            style={{ padding: '8px 14px', fontSize: '12px' }}
+            title="Khôi phục toàn bộ câu hỏi và dữ liệu từ file JSON"
+          >
+            <Upload size={14} />
+            <span>Khôi Phục (JSON)</span>
+          </button>
+
+          <button 
+            onClick={handleResetAll} 
+            className="btn-kid btn-yellow" 
+            style={{ padding: '8px 14px', fontSize: '12px' }}
+            title="Khôi phục toàn bộ dữ liệu về mặc định"
+          >
+            <RotateCcw size={14} />
+            <span>Reset Toàn Bộ</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Feedback Message */}
+      {feedbackMsg && (
+        <div className="animate-pop-in" style={{
+          background: '#f0fdf4',
+          border: '2px solid #86efac',
+          color: '#15803d',
+          padding: '12px 20px',
+          borderRadius: '16px',
+          fontWeight: 700,
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <CheckCircle2 size={18} />
+          <span>{feedbackMsg}</span>
+        </div>
+      )}
+
+      {/* Navigation Tabs Bar */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px',
+        marginBottom: '24px'
+      }}>
+        {[
+          { id: 'overview', label: 'Tổng Quan & Biểu Đồ', icon: LayoutDashboard, badge: null, color: '#3b82f6' },
+          { id: 'language', label: 'Bảng Từ Vựng', icon: BookOpen, badge: words.length, color: '#10b981' },
+          { id: 'math', label: 'Bảng Toán Học', icon: Calculator, badge: mathLevels.length, color: '#f59e0b' },
+          { id: 'logic', label: 'Bảng Tư Duy Logic', icon: Brain, badge: logicLevels.length, color: '#8b5cf6' },
+          { id: 'pet', label: 'Thú Cưng & Cửa Hàng', icon: Dog, badge: pets.length + shopItems.length, color: '#ec4899' },
+          { id: 'player', label: 'Bảng Học Sinh & Người Dùng', icon: Users, badge: `${cloudUsers.length} bé`, color: '#06b6d4' },
+          { id: 'cloud', label: 'Cloud Supabase & SQL', icon: Database, badge: 'Online', color: '#6366f1' }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                sounds.playClick();
+                setActiveTab(tab.id);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '16px',
+                border: isActive ? `2px solid ${tab.color}` : '2px solid #e2e8f0',
+                background: isActive ? '#ffffff' : '#f8fafc',
+                color: isActive ? tab.color : '#475569',
+                fontWeight: 800,
+                fontSize: '14px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
+                boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.06)' : 'none'
+              }}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+              {tab.badge !== null && (
+                <span style={{
+                  fontSize: '11px',
+                  background: isActive ? tab.color : '#e2e8f0',
+                  color: isActive ? '#ffffff' : '#64748b',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  fontWeight: 900
+                }}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ===================== TAB 1: TỔNG QUAN & BIỂU ĐỒ PHÂN TÍCH ===================== */}
+      {activeTab === 'overview' && (() => {
+        const totalContent = words.length + mathLevels.length + logicLevels.length + pets.length + shopItems.length;
+        const correctLogs = learningLogs.filter(l => l.is_correct).length;
+        const accuracyRate = learningLogs.length > 0 ? Math.round((correctLogs / learningLogs.length) * 100) : 100;
+
+        return (
+          <div className="animate-pop-in">
+            {/* 5 KPI Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              <div className="kid-card" style={{ padding: '18px', background: '#ecfdf5', border: '2px solid #a7f3d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#047857' }}>Từ Vựng</span>
+                  <BookOpen size={20} color="#059669" />
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#065f46' }}>{words.length}</div>
+                <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>game_vocabulary</div>
+              </div>
+
+              <div className="kid-card" style={{ padding: '18px', background: '#fffbeb', border: '2px solid #fde68a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#b45309' }}>Toán Học</span>
+                  <Calculator size={20} color="#d97706" />
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#92400e' }}>{mathLevels.length}</div>
+                <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px' }}>game_math</div>
+              </div>
+
+              <div className="kid-card" style={{ padding: '18px', background: '#f5f3ff', border: '2px solid #ddd6fe' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#6d28d9' }}>Tư Duy Logic</span>
+                  <Brain size={20} color="#7c3aed" />
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#5b21b6' }}>{logicLevels.length}</div>
+                <div style={{ fontSize: '11px', color: '#6d28d9', marginTop: '4px' }}>game_logic</div>
+              </div>
+
+              <div className="kid-card" style={{ padding: '18px', background: '#fdf2f8', border: '2px solid #fbcfe8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#be185d' }}>Thú Cưng & Shop</span>
+                  <Dog size={20} color="#db2777" />
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#9d174d' }}>{pets.length + shopItems.length}</div>
+                <div style={{ fontSize: '11px', color: '#be185d', marginTop: '4px' }}>pets & shop</div>
+              </div>
+
+              <div className="kid-card" style={{ padding: '18px', background: '#eff6ff', border: '2px solid #bfdbfe' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>Người Dùng / Bé</span>
+                  <Users size={20} color="#2563eb" />
+                </div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#1e40af' }}>{cloudUsers.length}</div>
+                <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>players (Supabase)</div>
+              </div>
+            </div>
+
+            {/* BIỂU ĐỒ PHÂN TÍCH 1: BIỂU ĐỒ CỘT NỘI DUNG & PHÂN BỔ */}
+            <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BarChart3 size={22} color="#0284c7" />
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    Biểu Đồ Phân Tích Cơ Cấu Nội Dung Học Tập
+                  </h3>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>
+                  Tổng cộng: {totalContent} bài tập & vật phẩm
+                </span>
+              </div>
+
+              {/* Progress Bars / Bar Chart Visualizer */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[
+                  { label: 'Từ vựng Ngôn ngữ (Language Valley)', count: words.length, color: '#10b981', icon: '📚' },
+                  { label: 'Bài tập Toán học (Math Farm)', count: mathLevels.length, color: '#f59e0b', icon: '🔢' },
+                  { label: 'Câu đố Tư duy & Quy luật (Logic Tower)', count: logicLevels.length, color: '#8b5cf6', icon: '🧩' },
+                  { label: 'Thú cưng tương tác (Pet Sanctuary)', count: pets.length, color: '#ec4899', icon: '🐾' },
+                  { label: 'Vật phẩm & Phụ kiện (Gift Shop)', count: shopItems.length, color: '#06b6d4', icon: '🎁' }
+                ].map((item, idx) => {
+                  const maxCount = Math.max(words.length, mathLevels.length, logicLevels.length, pets.length, shopItems.length, 1);
+                  const percent = Math.round((item.count / maxCount) * 100);
+                  const totalShare = totalContent > 0 ? Math.round((item.count / totalContent) * 100) : 0;
+                  return (
+                    <div key={idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 800, marginBottom: '6px' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
+                          <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </span>
+                        <span style={{ color: item.color, fontWeight: 900 }}>
+                          {item.count} câu ({totalShare}% tổng nội dung)
+                        </span>
+                      </div>
+                      <div style={{ width: '100%', height: '14px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div 
+                          style={{ 
+                            width: `${Math.max(percent, 3)}%`, 
+                            height: '100%', 
+                            background: item.color, 
+                            borderRadius: '999px',
+                            transition: 'width 0.8s ease'
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* BIỂU ĐỒ PHÂN TÍCH 2 & 3: TỈ LỆ ĐÚNG/SAI & HOẠT ĐỘNG */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '24px' }}>
+              {/* Donut Accuracy Chart */}
+              <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Trophy size={20} color="#eab308" />
+                  <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    Hiệu Suất Trả Lời Của Học Sinh
+                  </h4>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                  <div style={{
+                    width: '94px',
+                    height: '94px',
+                    borderRadius: '50%',
+                    background: `conic-gradient(#10b981 0% ${accuracyRate}%, #fecaca ${accuracyRate}% 100%)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 6px 16px rgba(16, 185, 129, 0.25)',
+                    flexShrink: 0
+                  }}>
+                    <div style={{
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      fontSize: '18px',
+                      color: '#065f46'
+                    }}>
+                      {accuracyRate}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
+                      🟢 Trả lời đúng: {correctLogs} lượt
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#b91c1c', marginBottom: '6px' }}>
+                      🔴 Cần luyện thêm: {learningLogs.length - correctLogs} lượt
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                      Tổng số lượt thử thách: {learningLogs.length} lần
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Realtime Database Users Sync Gauge */}
+              <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={20} color="#6366f1" />
+                    <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                      Người Dùng & Tiến Độ Đám Mây
+                    </h4>
+                  </div>
+                  <button onClick={fetchCloudUserData} className="btn-kid btn-blue" style={{ padding: '4px 10px', fontSize: '11px' }}>
+                    <RefreshCw size={12} className={isLoadingUsers ? 'animate-spin' : ''} />
+                    <span>Làm mới</span>
+                  </button>
+                </div>
+                <div style={{ fontSize: '36px', fontWeight: 900, color: '#4338ca', marginBottom: '6px' }}>
+                  {cloudUsers.length} <span style={{ fontSize: '16px', color: '#6366f1', fontWeight: 700 }}>học sinh đăng ký</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
+                  Dữ liệu tài khoản phân quyền độc lập, lưu trữ trực tuyến an toàn trên Supabase Cloud ☁️
+                </p>
+              </div>
+            </div>
+
+            {/* BẢNG TỔNG HỢP DỮ LIỆU TOÀN BỘ HỆ THỐNG (TABLE GRID) */}
+            <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Database size={20} color="#475569" />
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    Bảng Quản Trị Dữ Liệu Hệ Thống (Data Grid View)
+                  </h3>
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', background: '#ecfdf5', padding: '4px 12px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
+                  🟢 Supabase Online
+                </span>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Bảng Dữ Liệu (Collection)</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Số Lượng</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Bảng Supabase</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Trạng Thái</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: '📚 Thung Lũng Ngôn Ngữ', count: words.length, table: 'game_vocabulary', tab: 'language', color: '#10b981' },
+                      { name: '🔢 Nông Trại Toán Học', count: mathLevels.length, table: 'game_math', tab: 'math', color: '#f59e0b' },
+                      { name: '🧩 Tháp Tư Duy Logic', count: logicLevels.length, table: 'game_logic', tab: 'logic', color: '#8b5cf6' },
+                      { name: '🐾 Thú Cưng Nuôi Dưỡng', count: pets.length, table: 'game_pets', tab: 'pet', color: '#ec4899' },
+                      { name: '🎁 Cửa Hàng Quà Tặng', count: shopItems.length, table: 'game_shop', tab: 'pet', color: '#06b6d4' },
+                      { name: '👥 Học Sinh & Người Dùng', count: cloudUsers.length, table: 'players & game_progress', tab: 'player', color: '#6366f1' }
+                    ].map((row, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '14px 16px', fontWeight: 800, color: '#1e293b' }}>{row.name}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 800, color: row.color, fontSize: '16px' }}>{row.count}</td>
+                        <td style={{ padding: '14px 16px', fontFamily: 'monospace', color: '#64748b', fontSize: '13px' }}>{row.table}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ background: '#ecfdf5', color: '#059669', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 800, border: '1px solid #a7f3d0' }}>
+                            🟢 Đồng bộ
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <button onClick={() => setActiveTab(row.tab)} className="btn-kid btn-blue" style={{ padding: '6px 14px', fontSize: '12px' }}>
+                            Mở Bảng ➔
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '14px' }}>
+                ⚡ Thao Tác Quản Trị Nhanh
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <button 
+                  onClick={() => setActiveTab('language')} 
+                  className="btn-kid btn-green"
+                  style={{ padding: '12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Nạp Excel Từ Vựng Hàng Loạt</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('math')} 
+                  className="btn-kid btn-yellow"
+                  style={{ padding: '12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                >
+                  <Plus size={16} />
+                  <span>Thêm Câu Hỏi Toán Mới</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('logic')} 
+                  className="btn-kid btn-purple"
+                  style={{ padding: '12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                >
+                  <Brain size={16} />
+                  <span>Thêm Câu Đố Dãy Quy Luật</span>
+                </button>
+
+                <button 
+                  onClick={handleBackupExport} 
+                  className="btn-kid btn-blue"
+                  style={{ padding: '12px', fontSize: '13px', justifyContent: 'flex-start' }}
+                >
+                  <Download size={16} />
+                  <span>Xuất File Backup Đầy Đủ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ===================== TAB 2: TỪ VỰNG & NGÔN NGỮ ===================== */}
+      {activeTab === 'language' && (
+        <div className="animate-pop-in">
+          {/* SECTION 1: NẠP FILE EXCEL / CSV HÀNG LOẠT */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px', border: '3px solid #6ee7b7' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileSpreadsheet size={24} color="#059669" />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#065f46', margin: 0 }}>
+                  Nạp Dữ Liệu Hàng Loạt Bằng File Excel / CSV
+                </h3>
+              </div>
+
+              <button
+                onClick={() => dataManager.downloadSampleExcel()}
+                className="btn-kid btn-yellow"
+                style={{ padding: '8px 16px', fontSize: '12px' }}
+              >
+                <Download size={14} />
+                <span>Tải File Mẫu Excel (.xlsx)</span>
+              </button>
+            </div>
+
+            <p style={{ color: '#475569', fontSize: '13px', marginBottom: '16px', lineHeight: 1.6 }}>
+              Soạn sẵn từ vựng trong Excel với các cột: <strong>TiengViet, TiengAnh, Emoji, ChuDe, GoiY</strong> rồi tải lên.
+              <br />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', padding: '4px 10px', borderRadius: '8px', marginTop: '6px', fontWeight: 700, fontSize: '12px' }}>
+                <Sparkles size={14} /> Mẹo: Cột "Emoji" trong file Excel có thể ĐỂ TRỐNG — hệ thống tự động tìm kiếm và gán biểu tượng cho bạn!
+              </span>
+            </p>
+
+            <div style={{
+              border: '2px dashed #10b981',
+              borderRadius: '16px',
+              padding: '20px',
+              textAlign: 'center',
+              background: '#f0fdf4'
+            }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".xlsx, .xls, .csv"
+                style={{ display: 'none' }}
+              />
+              <Upload size={32} color="#10b981" style={{ margin: '0 auto 8px' }} />
+              <div style={{ fontWeight: 800, fontSize: '15px', color: '#065f46', marginBottom: '4px' }}>
+                {isProcessingFile ? 'Đang đọc và xử lý file...' : 'Chọn file Excel từ máy tính để nạp'}
+              </div>
+              <button
+                type="button"
+                disabled={isProcessingFile}
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-kid btn-green"
+                style={{ padding: '8px 20px', fontSize: '14px', marginTop: '8px' }}
+              >
+                <Upload size={16} />
+                <span>Tải Lên File Excel Ngay</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 2: 1-Click Preset Packs */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <PackagePlus size={20} color="#7c3aed" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Nạp Nhanh Theo Bộ Đề Có Sẵn (1-Click Packs)
+              </h3>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+              {Object.entries(PRESET_PACKS).map(([key, pack]) => (
+                <div key={key} style={{ background: '#faf5ff', border: '2px solid #e9d5ff', borderRadius: '16px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '15px', color: '#581c87', marginBottom: '4px' }}>{pack.name}</div>
+                    <div style={{ fontSize: '12px', color: '#7e22ce', marginBottom: '10px' }}>
+                      {pack.items.map(i => `${i.emoji} ${i.vn}`).join(', ')}
+                    </div>
+                  </div>
+                  <button onClick={() => handleAddPack(key)} className="btn-kid btn-purple" style={{ padding: '6px 12px', fontSize: '12px', width: '100%' }}>
+                    <Sparkles size={14} />
+                    <span>+ Nạp bộ này vào Game</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 3: Thêm từ vựng thủ công với Tự Động Tìm Emoji */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Plus size={20} color="#0284c7" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Thêm Từng Từ Vựng Tự Chọn (Tự Động Tìm Icon 🐯)
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddWord}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tiếng Việt:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Con Hổ, Quả Chuối, Xe Hơi..."
+                    value={wordForm.vn}
+                    onChange={handleVNChange}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tiếng Anh:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Tiger, Banana, Car..."
+                    value={wordForm.en}
+                    onChange={handleENChange}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Chủ đề:</label>
+                  <select
+                    value={wordForm.theme}
+                    onChange={(e) => setWordForm({ ...wordForm, theme: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', background: '#ffffff' }}
+                  >
+                    <option value="Động vật">🐾 Động vật</option>
+                    <option value="Trái cây">🍎 Trái cây</option>
+                    <option value="Phương tiện">🚗 Phương tiện</option>
+                    <option value="Đồ dùng">🎒 Đồ dùng</option>
+                    <option value="Thiên nhiên">☀️ Thiên nhiên</option>
+                    <option value="Khác">✨ Khác</option>
+                  </select>
+                </div>
+
+                {/* Emoji Auto Box */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>Biểu tượng Icon:</label>
+                    {isAutoEmoji && (
+                      <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Sparkles size={12} /> Tự động khớp!
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{
+                      fontSize: '26px',
+                      width: '46px',
+                      height: '42px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isAutoEmoji ? '#ecfdf5' : '#f8fafc',
+                      border: isAutoEmoji ? '2px solid #34d399' : '2px solid #cbd5e1',
+                      borderRadius: '10px'
+                    }}>
+                      {wordForm.emoji}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="btn-kid btn-yellow"
+                      style={{ padding: '8px 12px', fontSize: '12px' }}
+                    >
+                      <Smile size={14} />
+                      <span>{showEmojiPicker ? 'Đóng' : 'Tìm Thêm Icon'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {showEmojiPicker && (
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                  <EmojiPicker
+                    onEmojiClick={(data) => {
+                      setWordForm({ ...wordForm, emoji: data.emoji });
+                      setShowEmojiPicker(false);
+                    }}
+                    searchPlaceHolder="Tìm kiếm icon..."
+                    width={360}
+                    height={320}
+                  />
+                </div>
+              )}
+
+              <button type="submit" className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '14px' }}>
+                <Plus size={16} />
+                <span>Thêm Từ Vựng Này</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Active Word Table Grid */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  Bảng Dữ Liệu Từ Vựng & Ngôn Ngữ
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  Hiển thị {words.filter(w => (!vocabSearch || w.vn.toLowerCase().includes(vocabSearch.toLowerCase()) || w.en.toLowerCase().includes(vocabSearch.toLowerCase())) && (vocabThemeFilter === 'all' || w.theme === vocabThemeFilter)).length} / {words.length} từ vựng
+                </span>
+              </div>
+
+              {/* Search & Theme Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm từ vựng..."
+                    value={vocabSearch}
+                    onChange={(e) => setVocabSearch(e.target.value)}
+                    style={{
+                      padding: '6px 12px 6px 30px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      width: '180px'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={vocabThemeFilter}
+                  onChange={(e) => setVocabThemeFilter(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    background: '#ffffff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Tất cả chủ đề</option>
+                  <option value="Động vật">🐾 Động vật</option>
+                  <option value="Trái cây">🍎 Trái cây</option>
+                  <option value="Phương tiện">🚗 Phương tiện</option>
+                  <option value="Đồ dùng">🎒 Đồ dùng</option>
+                  <option value="Thiên nhiên">☀️ Thiên nhiên</option>
+                  <option value="Khác">✨ Khác</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '70px', textAlign: 'center' }}>Icon</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tiếng Việt</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tiếng Anh</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Chủ Đề</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Phát Âm</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {words
+                    .filter(w => {
+                      const matchS = !vocabSearch || w.vn.toLowerCase().includes(vocabSearch.toLowerCase()) || w.en.toLowerCase().includes(vocabSearch.toLowerCase());
+                      const matchT = vocabThemeFilter === 'all' || w.theme === vocabThemeFilter;
+                      return matchS && matchT;
+                    })
+                    .map((item, index) => (
+                      <tr 
+                        key={item.id || index}
+                        style={{ borderBottom: '1px solid #f1f5f9' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '24px' }}>
+                          <span style={{ display: 'inline-block', width: '38px', height: '38px', lineHeight: '38px', background: '#f1f5f9', borderRadius: '10px' }}>
+                            {item.emoji}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b', fontSize: '14px' }}>
+                          {item.vn}
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0284c7', fontSize: '14px' }}>
+                          {item.en}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
+                            {item.theme}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => sounds.speak(item.vn, 'vi-VN')}
+                            title="Nghe phát âm"
+                            style={{
+                              background: '#fdf2f8',
+                              border: '1px solid #fbcfe8',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              color: '#db2777',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Volume2 size={14} />
+                            <span style={{ fontSize: '11px', fontWeight: 700 }}>Nghe</span>
+                          </button>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWord(item.id, item.vn)}
+                            title="Xóa từ này"
+                            style={{
+                              background: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              color: '#ef4444',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span style={{ fontSize: '11px', fontWeight: 700 }}>Xóa</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TAB 3: TOÁN HỌC (MATH FARM) ===================== */}
+      {activeTab === 'math' && (
+        <div className="animate-pop-in">
+          {/* Add Math Question Form */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Calculator size={20} color="#d97706" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Thêm Câu Hỏi Toán Mới Vào Game
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddMath}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Loại bài toán:</label>
+                  <select
+                    value={mathForm.type}
+                    onChange={(e) => setMathForm({ ...mathForm, type: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', background: '#ffffff' }}
+                  >
+                    <option value="count">🔢 Đếm số lượng đồ vật</option>
+                    <option value="addition">➕ Phép cộng hình ảnh trực quan</option>
+                    <option value="compare">⚖️ So sánh lớn hơn / bé hơn</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tiêu đề:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Đếm Số Quả Táo, Phép Cộng Kẹo..."
+                    value={mathForm.title}
+                    onChange={(e) => setMathForm({ ...mathForm, title: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Icon Đồ Vật (Emoji):</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 🍎, 🍓, 🍌, 🐝, 🍬..."
+                    value={mathForm.itemEmoji}
+                    onChange={(e) => setMathForm({ ...mathForm, itemEmoji: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Câu hỏi (Tiếng Việt):</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Bé hãy đếm xem có bao nhiêu quả táo?"
+                    value={mathForm.promptVN}
+                    onChange={(e) => setMathForm({ ...mathForm, promptVN: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                {mathForm.type === 'count' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Số lượng mục tiêu:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={mathForm.targetCount}
+                      onChange={(e) => setMathForm({ ...mathForm, targetCount: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                    />
+                  </div>
+                )}
+
+                {mathForm.type === 'addition' && (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Số thứ nhất:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        value={mathForm.num1}
+                        onChange={(e) => setMathForm({ ...mathForm, num1: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Số thứ hai:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        value={mathForm.num2}
+                        onChange={(e) => setMathForm({ ...mathForm, num2: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Các lựa chọn (cách nhau dấu phẩy):</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 2, 3, 4, 5"
+                    value={mathForm.options}
+                    onChange={(e) => setMathForm({ ...mathForm, options: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Đáp án đúng:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 4"
+                    value={mathForm.answer}
+                    onChange={(e) => setMathForm({ ...mathForm, answer: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-kid btn-yellow" style={{ padding: '10px 24px', fontSize: '14px' }}>
+                <Plus size={16} />
+                <span>Thêm Câu Hỏi Toán Học</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Active Math Question Table Grid */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  Bảng Dữ Liệu Câu Hỏi Toán Học
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  Hiển thị {mathLevels.filter(m => (!mathSearch || m.title?.toLowerCase().includes(mathSearch.toLowerCase()) || m.promptVN?.toLowerCase().includes(mathSearch.toLowerCase())) && (mathTypeFilter === 'all' || m.type === mathTypeFilter)).length} / {mathLevels.length} câu hỏi
+                </span>
+              </div>
+
+              {/* Search & Type Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm câu hỏi toán..."
+                    value={mathSearch}
+                    onChange={(e) => setMathSearch(e.target.value)}
+                    style={{
+                      padding: '6px 12px 6px 30px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      width: '180px'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={mathTypeFilter}
+                  onChange={(e) => setMathTypeFilter(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    background: '#ffffff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Tất cả dạng toán</option>
+                  <option value="count">🔢 Đếm số lượng đồ vật</option>
+                  <option value="addition">➕ Phép cộng hình ảnh</option>
+                  <option value="compare">⚖️ So sánh lớn / bé</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '110px' }}>Dạng Bài</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '60px', textAlign: 'center' }}>Icon</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tiêu Đề</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Nội Dung Đề Bài</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Đáp Án Đúng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mathLevels
+                    .filter(m => {
+                      const matchS = !mathSearch || m.title?.toLowerCase().includes(mathSearch.toLowerCase()) || m.promptVN?.toLowerCase().includes(mathSearch.toLowerCase());
+                      const matchT = mathTypeFilter === 'all' || m.type === mathTypeFilter;
+                      return matchS && matchT;
+                    })
+                    .map((item, index) => (
+                      <tr 
+                        key={item.id || index}
+                        style={{ borderBottom: '1px solid #f1f5f9' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{
+                            background: item.type === 'count' ? '#fef3c7' : item.type === 'addition' ? '#ecfdf5' : '#ede9fe',
+                            color: item.type === 'count' ? '#92400e' : item.type === 'addition' ? '#065f46' : '#5b21b6',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 800
+                          }}>
+                            {item.type === 'count' ? '🔢 Đếm số' : item.type === 'addition' ? '➕ Phép cộng' : '⚖️ So sánh'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '22px' }}>
+                          {item.itemEmoji || '🍎'}
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>
+                          {item.title}
+                        </td>
+                        <td style={{ padding: '10px 14px', color: '#475569', fontSize: '13px' }}>
+                          {item.promptVN}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '3px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '13px' }}>
+                            {String(item.answer)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMath(item.id)}
+                            title="Xóa câu hỏi này"
+                            style={{
+                              background: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              color: '#ef4444',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span style={{ fontSize: '11px', fontWeight: 700 }}>Xóa</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TAB 4: TƯ DUY & LOGIC ===================== */}
+      {activeTab === 'logic' && (
+        <div className="animate-pop-in">
+          {/* Add Logic Form */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Brain size={20} color="#7c3aed" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Thêm Câu Đố Tư Duy Logic Mới
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddLogic}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Loại câu đố:</label>
+                  <select
+                    value={logicForm.type}
+                    onChange={(e) => setLogicForm({ ...logicForm, type: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', background: '#ffffff' }}
+                  >
+                    <option value="pattern">🔄 Dãy quy luật hình ảnh</option>
+                    <option value="odd_one_out">🔍 Tìm đồ vật khác biệt</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tiêu đề:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Quy Luật Màu Sắc, Quy Luật Trái Cây..."
+                    value={logicForm.title}
+                    onChange={(e) => setLogicForm({ ...logicForm, title: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Câu hỏi:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: Hình tiếp theo trong chuỗi là hình gì bé ơi?"
+                    value={logicForm.promptVN}
+                    onChange={(e) => setLogicForm({ ...logicForm, promptVN: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Dãy chuỗi (cách nhau dấu phẩy):</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 🔴, 🟡, 🔴, 🟡, 🔴"
+                    value={logicForm.sequence}
+                    onChange={(e) => setLogicForm({ ...logicForm, sequence: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Các lựa chọn:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 🟡, 🔴, 🟢, 🔵"
+                    value={logicForm.options}
+                    onChange={(e) => setLogicForm({ ...logicForm, options: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Đáp án đúng:</label>
+                  <input
+                    type="text"
+                    placeholder="Vd: 🟡"
+                    value={logicForm.answer}
+                    onChange={(e) => setLogicForm({ ...logicForm, answer: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-kid btn-purple" style={{ padding: '10px 24px', fontSize: '14px' }}>
+                <Plus size={16} />
+                <span>Thêm Câu Đố Logic</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Active Logic Question Table Grid */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  Bảng Dữ Liệu Câu Đố Tư Duy Logic
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  Hiển thị {logicLevels.filter(l => (!logicSearch || l.title?.toLowerCase().includes(logicSearch.toLowerCase()) || l.promptVN?.toLowerCase().includes(logicSearch.toLowerCase())) && (logicTypeFilter === 'all' || l.type === logicTypeFilter)).length} / {logicLevels.length} câu đố
+                </span>
+              </div>
+
+              {/* Search & Type Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Tìm câu đố logic..."
+                    value={logicSearch}
+                    onChange={(e) => setLogicSearch(e.target.value)}
+                    style={{
+                      padding: '6px 12px 6px 30px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      width: '180px'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={logicTypeFilter}
+                  onChange={(e) => setLogicTypeFilter(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    background: '#ffffff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Tất cả thể loại</option>
+                  <option value="pattern">🔄 Dãy quy luật hình ảnh</option>
+                  <option value="odd_one_out">🔍 Tìm đồ vật khác biệt</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '120px' }}>Dạng Câu Đố</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tiêu Đề</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Dãy Chuỗi Biểu Tượng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Đáp Án Đúng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Gợi Ý</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logicLevels
+                    .filter(l => {
+                      const matchS = !logicSearch || l.title?.toLowerCase().includes(logicSearch.toLowerCase()) || l.promptVN?.toLowerCase().includes(logicSearch.toLowerCase());
+                      const matchT = logicTypeFilter === 'all' || l.type === logicTypeFilter;
+                      return matchS && matchT;
+                    })
+                    .map((item, index) => (
+                      <tr 
+                        key={item.id || index}
+                        style={{ borderBottom: '1px solid #f1f5f9' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{
+                            background: item.type === 'pattern' ? '#faf5ff' : '#f0fdfa',
+                            color: item.type === 'pattern' ? '#6b21a8' : '#0f766e',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            border: item.type === 'pattern' ? '1px solid #e9d5ff' : '1px solid #ccfbf1'
+                          }}>
+                            {item.type === 'pattern' ? '🔄 Quy luật' : '🔍 Khác biệt'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>
+                          {item.title}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          {item.sequence && (
+                            <span style={{ fontSize: '16px', background: '#f8fafc', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e2e8f0', letterSpacing: '2px' }}>
+                              {Array.isArray(item.sequence) ? item.sequence.join(' ') : item.sequence} ❓
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '8px', fontWeight: 900, fontSize: '16px' }}>
+                            {item.answer}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '12px' }}>
+                          {item.hint || item.promptVN}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLogic(item.id)}
+                            title="Xóa câu đố này"
+                            style={{
+                              background: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              color: '#ef4444',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span style={{ fontSize: '11px', fontWeight: 700 }}>Xóa</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TAB 5: THÚ CƯNG & CỬA HÀNG ===================== */}
+      {activeTab === 'pet' && (
+        <div className="animate-pop-in">
+          {/* Pets Management */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <Dog size={20} color="#db2777" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Quản Lý Thú Cưng Bé Nuôi ({pets.length})
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddPet} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tên thú cưng:</label>
+                <input
+                  type="text"
+                  placeholder="Vd: Thỏ Ngọc"
+                  value={petForm.name}
+                  onChange={(e) => setPetForm({ ...petForm, name: e.target.value })}
+                  style={{ padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Biểu tượng Emoji:</label>
+                <input
+                  type="text"
+                  placeholder="Vd: 🐰, 🐼, 🦁..."
+                  value={petForm.emoji}
+                  onChange={(e) => setPetForm({ ...petForm, emoji: e.target.value })}
+                  style={{ width: '80px', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', textAlign: 'center' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tiếng kêu:</label>
+                <input
+                  type="text"
+                  placeholder="Vd: Khịt khịt!"
+                  value={petForm.sound}
+                  onChange={(e) => setPetForm({ ...petForm, sound: e.target.value })}
+                  style={{ padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <button type="submit" className="btn-kid btn-pink" style={{ padding: '9px 18px', fontSize: '13px' }}>
+                <Plus size={15} />
+                <span>Thêm Thú Cưng</span>
+              </button>
+            </form>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '70px', textAlign: 'center' }}>Icon</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tên Thú Cưng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tiếng Kêu</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pets.map((p, index) => (
+                    <tr key={p.id || index} style={{ borderBottom: '1px solid #f1f5f9' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fdf2f8'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '26px' }}>{p.emoji}</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#9d174d', fontSize: '14px' }}>{p.name}</td>
+                      <td style={{ padding: '10px 14px', color: '#db2777', fontWeight: 700 }}>"{p.sound}"</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                        <button type="button" onClick={() => handleDeletePet(p.id)} title="Xóa thú cưng" style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Trash2 size={14} />
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>Xóa</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Shop Items Management */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <ShoppingBag size={20} color="#ca8a04" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                Quản Lý Quà Tặng & Cửa Hàng ({shopItems.length})
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddShop} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Tên món quà:</label>
+                <input
+                  type="text"
+                  placeholder="Vd: Bánh Donut"
+                  value={shopForm.name}
+                  onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })}
+                  style={{ padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Loại:</label>
+                <select
+                  value={shopForm.type}
+                  onChange={(e) => setShopForm({ ...shopForm, type: e.target.value })}
+                  style={{ padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', background: '#ffffff' }}
+                >
+                  <option value="food">🍲 Thức ăn</option>
+                  <option value="hat">👑 Mũ & Trang phục</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Emoji:</label>
+                <input
+                  type="text"
+                  placeholder="🍩"
+                  value={shopForm.emoji}
+                  onChange={(e) => setShopForm({ ...shopForm, emoji: e.target.value })}
+                  style={{ width: '70px', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none', textAlign: 'center' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>Giá Xu:</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={shopForm.price}
+                  onChange={(e) => setShopForm({ ...shopForm, price: e.target.value })}
+                  style={{ width: '80px', padding: '8px 12px', borderRadius: '10px', border: '2px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+
+              <button type="submit" className="btn-kid btn-yellow" style={{ padding: '9px 18px', fontSize: '13px' }}>
+                <Plus size={15} />
+                <span>Thêm Món Quà</span>
+              </button>
+            </form>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '70px', textAlign: 'center' }}>Icon</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tên Món Quà</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Phân Loại</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Giá Bán (Xu 🪙)</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shopItems.map((item, index) => (
+                    <tr key={item.id || index} style={{ borderBottom: '1px solid #f1f5f9' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fefce8'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '24px' }}>{item.emoji}</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b', fontSize: '14px' }}>{item.name}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ background: item.type === 'food' ? '#ffedd5' : '#f3e8ff', color: item.type === 'food' ? '#c2410c' : '#7e22ce', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                          {item.type === 'food' ? '🍲 Thức ăn' : '👑 Mũ & Trang phục'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '3px 10px', borderRadius: '8px', fontWeight: 800, fontSize: '13px' }}>
+                          {item.price} Xu 🪙
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                        <button type="button" onClick={() => handleDeleteShop(item.id)} title="Xóa món quà" style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Trash2 size={14} />
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>Xóa</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TAB 6: HỒ SƠ BÉ & TIẾN ĐỘ ===================== */}
+      {activeTab === 'player' && (
+        <div className="animate-pop-in">
+          {/* SECTION 1: BẢNG DỮ LIỆU NGƯỜI DÙNG & HỌC SINH (SUPABASE TABLE GRID) */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={22} color="#0284c7" />
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    Bảng Dữ Liệu Học Sinh & Người Dùng (Supabase Database)
+                  </h3>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '12px', margin: '4px 0 0' }}>
+                  Danh sách tài khoản học sinh, sao vàng, xu và thú cưng lưu trữ trên đám mây.
+                </p>
+              </div>
+
+              {/* Search & Refresh */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Tìm theo UID hoặc tên..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    style={{
+                      padding: '6px 12px 6px 30px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      width: '200px'
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => { sounds.playClick(); fetchCloudUserData(); }}
+                  disabled={isLoadingUsers}
+                  className="btn-kid btn-blue"
+                  style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCw size={13} className={isLoadingUsers ? 'animate-spin' : ''} />
+                  <span>{isLoadingUsers ? 'Đang nạp...' : 'Làm mới'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table Grid */}
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '140px' }}>Mã UID</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tên Bé / Tài Khoản</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Cấp Độ</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Sao Vàng ⭐</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Xu Vàng 🪙</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Bạn Thú Cưng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Cập Nhật</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cloudUsers
+                    .filter(u => {
+                      if (!userSearchTerm) return true;
+                      const term = userSearchTerm.toLowerCase();
+                      return u.id?.toLowerCase().includes(term) || u.name?.toLowerCase().includes(term);
+                    })
+                    .map((u, index) => {
+                      const isSelected = selectedPlayerId === u.id;
+                      return (
+                        <tr
+                          key={u.id || index}
+                          style={{
+                            borderBottom: '1px solid #f1f5f9',
+                            background: isSelected ? '#eff6ff' : 'transparent',
+                            transition: 'all 0.15s'
+                          }}
+                          onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                          <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: '11px', color: '#64748b' }}>
+                            <span title={u.id}>
+                              {u.id ? `${u.id.slice(0, 8)}...` : 'N/A'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 800, color: '#1e293b', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '18px' }}>🧒</span>
+                              <span>{u.name || 'Bé Thám Hiểm'}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                            <span style={{ background: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
+                              Cấp {u.level || 1}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#ca8a04', fontSize: '14px' }}>
+                            {u.stars || 0}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#d97706', fontSize: '14px' }}>
+                            {u.coins || 0}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {u.pet ? (
+                              <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <span>{u.pet.emoji || '🐱'}</span>
+                                <span>{u.pet.name || 'Thú cưng'}</span>
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa chọn</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px', color: '#64748b', fontSize: '11px' }}>
+                            {u.updatedAt ? new Date(u.updatedAt).toLocaleDateString('vi-VN') : 'Mới tạo'}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sounds.playClick();
+                                setSelectedPlayerId(u.id);
+                                setSelectedPlayerName(u.name || 'Bé Thám Hiểm');
+                                setPlayerEdit({
+                                  stars: u.stars || 5,
+                                  coins: u.coins || 30,
+                                  level: u.level || 1
+                                });
+                                notify(`Đã chọn học sinh "${u.name || 'Bé Thám Hiểm'}" để chỉnh sửa chỉ số!`);
+                              }}
+                              className={`btn-kid ${isSelected ? 'btn-green' : 'btn-blue'}`}
+                              style={{ padding: '5px 12px', fontSize: '11px' }}
+                            >
+                              {isSelected ? '✓ Đang chọn' : 'Chọn & Sửa'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                  {cloudUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>☁️</div>
+                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#334155', marginBottom: '4px' }}>
+                          Chưa có tài khoản nào được ghi nhận trên Supabase
+                        </div>
+                        <p style={{ fontSize: '12px', margin: 0 }}>
+                          Khi người dùng đăng ký hoặc đăng nhập qua Google/Email, tài khoản sẽ tự động xuất hiện tại bảng này.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* SECTION 2: ĐIỀU CHỈNH CHỈ SỐ HỌC SINH ĐƯỢC CHỌN */}
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px', border: selectedPlayerId ? '2.5px solid #38bdf8' : '2px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={22} color="#0284c7" />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  {selectedPlayerId ? (
+                    <span>Đang Chỉnh Sửa Chỉ Số Cho: <strong style={{ color: '#0284c7' }}>{selectedPlayerName}</strong></span>
+                  ) : (
+                    <span>Điều Chỉnh Chỉ Số Tiến Độ Người Chơi Cục Bộ (Bé Thám Hiểm)</span>
+                  )}
+                </h3>
+              </div>
+
+              {selectedPlayerId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sounds.playClick();
+                    setSelectedPlayerId(null);
+                    setSelectedPlayerName('');
+                    setPlayerEdit({
+                      stars: playerData.stars || 5,
+                      coins: playerData.coins || 30,
+                      level: playerData.level || 1
+                    });
+                  }}
+                  className="btn-kid"
+                  style={{ padding: '4px 10px', fontSize: '11px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}
+                >
+                  ✕ Bỏ chọn học sinh này
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSavePlayer}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ background: '#fef9c3', border: '2px solid #fde047', borderRadius: '16px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#a16207', marginBottom: '8px' }}>
+                    <Star size={18} />
+                    <span>Số Ngôi Sao (Stars):</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={playerEdit.stars}
+                    onChange={(e) => setPlayerEdit({ ...playerEdit, stars: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '2px solid #facc15', fontSize: '16px', fontWeight: 800, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ background: '#ecfdf5', border: '2px solid #a7f3d0', borderRadius: '16px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#047857', marginBottom: '8px' }}>
+                    <Coins size={18} />
+                    <span>Số Đồng Xu (Coins):</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={playerEdit.coins}
+                    onChange={(e) => setPlayerEdit({ ...playerEdit, coins: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '2px solid #6ee7b7', fontSize: '16px', fontWeight: 800, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ background: '#f5f3ff', border: '2px solid #ddd6fe', borderRadius: '16px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#6d28d9', marginBottom: '8px' }}>
+                    <Trophy size={18} />
+                    <span>Cấp Độ (Level):</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={playerEdit.level}
+                    onChange={(e) => setPlayerEdit({ ...playerEdit, level: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '2px solid #c4b5fd', fontSize: '16px', fontWeight: 800, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '14px' }}>
+                <Check size={16} />
+                <span>
+                  {selectedPlayerId ? `Lưu Chỉ Số Cho "${selectedPlayerName}" Vào Database ☁️` : 'Cập Nhật Chỉ Số Cho Bé'}
+                </span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TAB 7: SUPABASE CLOUD & SQL ===================== */}
+      {activeTab === 'cloud' && (
+        <div className="animate-pop-in">
+          <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Database size={24} color="#6366f1" />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  Trạng Thái Kết Nối Supabase Cloud
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', padding: '6px 14px', borderRadius: '999px', fontWeight: 800, fontSize: '13px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                <span>BaaS Kết Nối Trực Tiếp Sẵn Sàng</span>
+              </div>
+            </div>
+
+            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6, marginBottom: '20px' }}>
+              Dự án sử dụng cơ chế <strong>Backend-as-a-Service (BaaS)</strong>: Trình duyệt kết nối trực tiếp với Supabase Database qua API Key công khai (<code>anon key</code>). Không cần máy chủ trung gian, phản hồi tức thì 0 giây và hoàn toàn miễn phí.
+            </p>
+
+            <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>Đoạn Mã Tạo Bảng SQL Supabase (Chạy trong SQL Editor):</span>
+                <button onClick={copySQL} className="btn-kid btn-blue" style={{ padding: '6px 14px', fontSize: '12px' }}>
+                  {isCopiedSQL ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{isCopiedSQL ? 'Đã Sao Chép SQL!' : 'Sao Chép SQL'}</span>
+                </button>
+              </div>
+
+              <pre style={{
+                background: '#0f172a',
+                color: '#38bdf8',
+                padding: '14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                overflowX: 'auto',
+                fontFamily: 'monospace',
+                lineHeight: 1.5
+              }}>
+{`-- 1. Bảng Thông Tin Bé
+CREATE TABLE IF NOT EXISTS public.players (
+  id TEXT PRIMARY KEY,
+  name TEXT DEFAULT 'Bé Thám Hiểm',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. Bảng Tiến Độ Game (Sao, Xu, Cấp Độ, Thú Cưng)
+CREATE TABLE IF NOT EXISTS public.game_progress (
+  player_id TEXT PRIMARY KEY REFERENCES public.players(id) ON DELETE CASCADE,
+  stars INTEGER DEFAULT 5,
+  coins INTEGER DEFAULT 30,
+  level INTEGER DEFAULT 1,
+  pet_data JSONB DEFAULT '{"id": "cat", "name": "Bé Miu Miu", "hunger": 80, "happiness": 90}'::jsonb,
+  stats_data JSONB DEFAULT '{"language": {"completed": 0, "correct": 0}, "math": {"completed": 0, "correct": 0}, "logic": {"completed": 0, "correct": 0}}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Bảng Nhật Ký Học Tập (Phụ Huynh Theo Dõi)
+CREATE TABLE IF NOT EXISTS public.learning_logs (
+  id BIGSERIAL PRIMARY KEY,
+  player_id TEXT,
+  subject TEXT NOT NULL,
+  is_correct BOOLEAN DEFAULT true,
+  score_earned INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.players DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.game_progress DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.learning_logs DISABLE ROW LEVEL SECURITY;`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
