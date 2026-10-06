@@ -648,6 +648,56 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           </button>
         </form>
 
+        {/* Admin Quick Credentials Card */}
+        {mode === 'login' && (
+          <div style={{
+            marginTop: '18px',
+            padding: '14px 16px',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            border: '2px dashed #cbd5e1',
+            borderRadius: '16px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <span>🛡️</span>
+              <span>CỔNG ĐĂNG NHẬP QUẢN TRỊ VIÊN (ADMIN)</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', lineHeight: 1.4 }}>
+              Email: <strong style={{ color: '#0f172a' }}>admin@kidsedu.com</strong> | Mật khẩu: <strong style={{ color: '#0f172a' }}>admin123</strong>
+              <br />
+              (Hoặc tài khoản cá nhân: <strong style={{ color: '#0284c7' }}>tandung230698@gmail.com</strong>)
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                sounds.playClick();
+                setEmail('admin@kidsedu.com');
+                setPassword('admin123');
+                setIsEmailReadOnly(false);
+                setIsPasswordReadOnly(false);
+                setErrorMsg('');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '8px 18px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span>⚡ Điền Nhanh Tài Khoản Admin</span>
+            </button>
+          </div>
+        )}
+
         {/* Back to Login button when in forgot mode */}
         {mode === 'forgot' && (
           <div style={{ textAlign: 'center', marginTop: '16px' }}>
