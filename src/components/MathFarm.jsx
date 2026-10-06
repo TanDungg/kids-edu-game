@@ -92,29 +92,45 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '16px' }}>
+    <div className="page-container" style={{ maxWidth: '800px' }}>
       {/* Top Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <button onClick={onBack} className="btn-kid btn-green" style={{ padding: '8px 16px' }}>
-          <ArrowLeft size={18} />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px',
+        marginBottom: '16px'
+      }}>
+        <button onClick={onBack} className="btn-kid btn-green" style={{ padding: '8px 14px', fontSize: '13px' }}>
+          <ArrowLeft size={16} />
           <span>Bản đồ</span>
         </button>
 
-        <div style={{ background: '#ecfdf5', color: '#047857', padding: '6px 16px', borderRadius: '999px', fontWeight: 800, fontSize: '14px', border: '2px solid #a7f3d0' }}>
+        <div style={{
+          background: '#ecfdf5',
+          color: '#047857',
+          padding: '5px 14px',
+          borderRadius: '999px',
+          fontWeight: 800,
+          fontSize: '13px',
+          border: '2px solid #a7f3d0',
+          textAlign: 'center'
+        }}>
           Màn {levelIndex + 1} / {mathLevels.length}: {currentLevel.title}
         </div>
 
-        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }}>
-          <RefreshCw size={18} />
+        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }} title="Làm lại màn này">
+          <RefreshCw size={16} />
         </button>
       </div>
 
       {/* Main Farm Card */}
-      <div className="kid-card" style={{ padding: '32px', textAlign: 'center', background: '#ffffff' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', color: '#065f46', fontWeight: 800, marginBottom: '8px' }}>
+      <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 32px)', textAlign: 'center', background: '#ffffff' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 4vw, 22px)', color: '#065f46', fontWeight: 800, marginBottom: '8px' }}>
           {currentLevel.promptVN}
         </h3>
-        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '24px' }}>
+        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '20px' }}>
           {currentLevel.promptEN}
         </p>
 
@@ -124,12 +140,12 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '16px',
+              gap: 'clamp(8px, 2vw, 16px)',
               flexWrap: 'wrap',
-              margin: '20px 0',
-              padding: '24px',
+              margin: '16px 0',
+              padding: 'clamp(14px, 3vw, 24px)',
               background: '#f0fdf4',
-              borderRadius: '24px',
+              borderRadius: '20px',
               border: '3px dashed #86efac'
             }}>
               {Array.from({ length: currentLevel.targetCount }).map((_, idx) => {
@@ -138,16 +154,13 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
                   <div
                     key={idx}
                     onClick={() => handleTapCountItem(idx)}
+                    className="count-item-box"
                     style={{
-                      width: '75px',
-                      height: '75px',
-                      borderRadius: '20px',
                       background: isTapped ? '#bbf7d0' : '#ffffff',
                       border: isTapped ? '3px solid #22c55e' : '3px solid #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '40px',
                       cursor: 'pointer',
                       transform: isTapped ? 'scale(1.1)' : 'scale(1)',
                       boxShadow: isTapped ? '0 6px 0 #16a34a' : '0 4px 0 #cbd5e1',

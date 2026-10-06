@@ -132,10 +132,10 @@ export default function UserProfileModal({
         className="kid-card animate-pop-in"
         style={{
           background: '#ffffff',
-          borderRadius: '28px',
+          borderRadius: 'clamp(18px, 4vw, 28px)',
           width: '100%',
           maxWidth: '480px',
-          padding: '24px',
+          padding: 'clamp(16px, 4vw, 24px)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           position: 'relative',
           maxHeight: '92vh',
@@ -365,7 +365,7 @@ export default function UserProfileModal({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                   Ngày Sinh Của Bé:

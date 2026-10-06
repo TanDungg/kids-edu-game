@@ -64,14 +64,14 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
+    <div className="page-container" style={{ maxWidth: '1000px' }}>
       {/* Banner: Hiển thị trạng thái theo người dùng */}
       {!currentUser ? (
         <div 
           className="kid-card"
           style={{
-            padding: '24px',
-            marginBottom: '32px',
+            padding: 'clamp(16px, 4vw, 24px)',
+            marginBottom: 'clamp(18px, 4vw, 32px)',
             background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
             display: 'flex',
             alignItems: 'center',
@@ -159,8 +159,8 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
       {/* Grid 4 Vùng Đất */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '24px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gap: 'clamp(14px, 3vw, 24px)'
       }}>
         {realms.map((realm) => (
           <div

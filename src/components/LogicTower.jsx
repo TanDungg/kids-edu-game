@@ -82,30 +82,49 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '16px' }}>
+    <div className="page-container" style={{ maxWidth: '800px' }}>
       {/* Top Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <button onClick={onBack} className="btn-kid btn-purple" style={{ padding: '8px 16px' }}>
-          <ArrowLeft size={18} />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px',
+        marginBottom: '16px'
+      }}>
+        <button onClick={onBack} className="btn-kid btn-purple" style={{ padding: '8px 14px', fontSize: '13px' }}>
+          <ArrowLeft size={16} />
           <span>Bản đồ</span>
         </button>
 
-        <div style={{ background: '#f5f3ff', color: '#6d28d9', padding: '6px 16px', borderRadius: '999px', fontWeight: 800, fontSize: '14px', border: '2px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{
+          background: '#f5f3ff',
+          color: '#6d28d9',
+          padding: '5px 14px',
+          borderRadius: '999px',
+          fontWeight: 800,
+          fontSize: '13px',
+          border: '2px solid #ddd6fe',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          textAlign: 'center'
+        }}>
           <Brain size={16} />
           <span>Câu {levelIndex + 1} / {logicLevels.length}: {currentLevel.title}</span>
         </div>
 
-        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }}>
-          <RefreshCw size={18} />
+        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }} title="Làm lại câu đố này">
+          <RefreshCw size={16} />
         </button>
       </div>
 
       {/* Main Puzzle Card */}
-      <div className="kid-card" style={{ padding: '32px', textAlign: 'center', background: '#ffffff' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', color: '#4c1d95', fontWeight: 800, marginBottom: '8px' }}>
+      <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 32px)', textAlign: 'center', background: '#ffffff' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 4vw, 22px)', color: '#4c1d95', fontWeight: 800, marginBottom: '8px' }}>
           {currentLevel.promptVN}
         </h3>
-        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '24px' }}>
+        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '20px' }}>
           {currentLevel.promptEN}
         </p>
 
@@ -115,27 +134,24 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '12px',
-            margin: '24px 0',
+            gap: 'clamp(6px, 2vw, 12px)',
+            margin: '16px 0',
             flexWrap: 'wrap',
-            padding: '24px',
+            padding: 'clamp(14px, 3vw, 24px)',
             background: '#faf5ff',
-            borderRadius: '24px',
+            borderRadius: '20px',
             border: '3px dashed #c084fc'
           }}>
             {currentLevel.sequence.map((item, idx) => (
               <div
                 key={idx}
+                className="pattern-item-box"
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
                   background: '#ffffff',
                   border: '2px solid #e9d5ff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '32px',
                   boxShadow: '0 4px 0 #d8b4fe'
                 }}
               >
@@ -143,19 +159,18 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
               </div>
             ))}
 
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '16px',
-              background: '#f3e8ff',
-              border: '3px dashed #9333ea',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: 900,
-              color: '#7e22ce'
-            }}>
+            <div
+              className="pattern-item-box"
+              style={{
+                background: '#f3e8ff',
+                border: '3px dashed #9333ea',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                color: '#7e22ce'
+              }}
+            >
               ?
             </div>
           </div>

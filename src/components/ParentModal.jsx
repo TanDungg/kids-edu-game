@@ -65,7 +65,7 @@ export default function ParentModal({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      padding: '16px'
+      padding: 'clamp(8px, 2.5vw, 16px)'
     }}>
       <div 
         className="kid-card animate-pop-in"
@@ -73,10 +73,10 @@ export default function ParentModal({
           width: '100%',
           maxWidth: '640px',
           background: '#ffffff',
-          borderRadius: '28px',
+          borderRadius: 'clamp(18px, 4vw, 28px)',
           padding: 0,
           position: 'relative',
-          maxHeight: '90vh',
+          maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -85,7 +85,7 @@ export default function ParentModal({
       >
         {/* ================= FIXED HEADER ================= */}
         <div style={{
-          padding: '22px 24px 18px',
+          padding: 'clamp(14px, 3vw, 22px) clamp(14px, 3.5vw, 24px) clamp(12px, 2.5vw, 18px)',
           borderBottom: '1.5px solid #f1f5f9',
           background: '#ffffff',
           position: 'relative',
@@ -101,11 +101,11 @@ export default function ParentModal({
             background: 'linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #10b981)'
           }} />
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
-                width: '42px',
-                height: '42px',
+                width: '38px',
+                height: '38px',
                 borderRadius: '12px',
                 background: '#f5f3ff',
                 display: 'flex',
@@ -114,14 +114,14 @@ export default function ParentModal({
                 color: '#7c3aed',
                 flexShrink: 0
               }}>
-                <BarChart3 size={24} />
+                <BarChart3 size={20} />
               </div>
               <div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 3.5vw, 20px)', fontWeight: 800, color: '#1e293b', margin: 0, lineHeight: 1.2 }}>
                   Báo Cáo Học Tập & Tiến Trình Của Bé
                 </h3>
-                <p style={{ color: '#64748b', fontSize: '13px', margin: '4px 0 0', fontWeight: 500 }}>
-                  Theo dõi kết quả học tập, độ chính xác và định hướng phát triển
+                <p style={{ color: '#64748b', fontSize: '12px', margin: '3px 0 0', fontWeight: 500 }}>
+                  Theo dõi kết quả học tập và độ chính xác của bé
                 </p>
               </div>
             </div>
@@ -131,8 +131,8 @@ export default function ParentModal({
               onClick={handleClose}
               className="btn-kid btn-gray"
               style={{
-                width: '38px',
-                height: '38px',
+                width: '36px',
+                height: '36px',
                 padding: 0,
                 borderRadius: '50%',
                 flexShrink: 0
@@ -148,17 +148,17 @@ export default function ParentModal({
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '20px 24px',
+          padding: 'clamp(14px, 3vw, 20px) clamp(14px, 3.5vw, 24px)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '18px'
+          gap: '16px'
         }}>
           {/* Summary Overview Card */}
           <div style={{
             background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
             border: '2px solid #c7d2fe',
             borderRadius: '20px',
-            padding: '16px 20px',
+            padding: '16px 18px',
             boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
@@ -187,7 +187,7 @@ export default function ParentModal({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
               <div style={{ background: '#ffffff', padding: '10px 8px', borderRadius: '14px', textAlign: 'center', border: '1.5px solid #bfdbfe' }}>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Cấp độ</div>
                 <div style={{ fontSize: '18px', fontWeight: 900, color: '#0284c7' }}>Cấp {level}</div>

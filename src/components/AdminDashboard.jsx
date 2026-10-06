@@ -640,7 +640,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
   };
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px' }}>
+    <div className="page-container" style={{ maxWidth: '1100px' }}>
       {/* Top Navbar */}
       <div style={{ 
         display: 'flex', 

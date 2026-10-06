@@ -238,13 +238,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         className="kid-card animate-pop-in"
         style={{
           background: '#ffffff',
-          borderRadius: '28px',
+          borderRadius: 'clamp(18px, 4vw, 28px)',
           width: '100%',
           maxWidth: '460px',
-          padding: '28px 24px',
+          padding: 'clamp(20px, 4vw, 28px) clamp(16px, 4vw, 24px)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           position: 'relative',
-          overflow: 'hidden'
+          maxHeight: '92vh',
+          overflowY: 'auto'
         }}
       >
         {/* Decorative Top Accent */}

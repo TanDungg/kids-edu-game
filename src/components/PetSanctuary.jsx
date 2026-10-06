@@ -105,22 +105,22 @@ export default function PetSanctuary({
   };
 
   return (
-    <div style={{ maxWidth: '850px', margin: '0 auto', padding: '16px' }}>
+    <div className="page-container" style={{ maxWidth: '850px' }}>
       {/* Top Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <button onClick={onBack} className="btn-kid btn-yellow" style={{ padding: '8px 16px' }}>
-          <ArrowLeft size={18} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+        <button onClick={onBack} className="btn-kid btn-yellow" style={{ padding: '8px 14px', fontSize: '13px' }}>
+          <ArrowLeft size={16} />
           <span>Bản đồ</span>
         </button>
 
-        <div style={{ background: '#fef3c7', color: '#b45309', padding: '6px 18px', borderRadius: '999px', fontWeight: 800, fontSize: '15px', border: '2px solid #fde68a' }}>
+        <div style={{ background: '#fef3c7', color: '#b45309', padding: '5px 16px', borderRadius: '999px', fontWeight: 800, fontSize: '14px', border: '2px solid #fde68a' }}>
           🪙 Xu của bé: <strong>{coins}</strong>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
         {/* Left: Pet Display Stage */}
-        <div className="kid-card" style={{ padding: '32px', textAlign: 'center', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="kid-card" style={{ padding: 'clamp(20px, 4vw, 32px)', textAlign: 'center', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Pet Switcher */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
             {pets.map((p) => (
@@ -218,7 +218,7 @@ export default function PetSanctuary({
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
               <Utensils size={14} /> Thức ăn thơm ngon:
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))', gap: '10px' }}>
               {shopItems.filter(i => i.type === 'food').map((item) => (
                 <div
                   key={item.id}
@@ -253,7 +253,7 @@ export default function PetSanctuary({
             <div style={{ fontSize: '13px', fontWeight: 800, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
               <Sparkles size={14} /> Mũ & Phụ kiện siêu ngầu:
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))', gap: '10px' }}>
               {shopItems.filter(i => i.type === 'hat').map((item) => {
                 const isEquipped = activeHat === item.emoji;
                 return (
