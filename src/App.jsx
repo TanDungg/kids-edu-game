@@ -13,8 +13,35 @@ import { dataManager } from "./services/dataManager";
 import { sounds } from "./utils/sound";
 import { supabaseService } from "./services/supabase";
 
+// Helper đọc màn hình từ URL hash hoặc localStorage để giữ nguyên trang khi F5
+function getScreenFromHash() {
+  try {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+    const validScreens = ['map', 'language', 'math', 'logic', 'pet', 'admin'];
+    if (validScreens.includes(hash)) {
+      return hash;
+    }
+  } catch {}
+  return localStorage.getItem('kids_last_screen') || 'map';
+}
+
+function updateHashForScreen(screen) {
+  try {
+    const targetHash = screen === 'map' ? '' : `#/${screen}`;
+    if (window.location.hash !== targetHash) {
+      if (!targetHash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      } else {
+        history.replaceState(null, '', targetHash);
+      }
+    }
+    localStorage.setItem('kids_last_screen', screen);
+  } catch {}
+}
+
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState("map"); // 'map', 'language', 'math', 'logic', 'pet'
+  const [currentScreen, setCurrentScreen] = useState(() => getScreenFromHash());
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [stars, setStars] = useState(() => {
     return parseInt(localStorage.getItem("kids_stars") || "5", 10);
   });
@@ -69,12 +96,17 @@ export default function App() {
       currentUser.app_metadata?.role === "admin" ||
       currentUser.email === "admin@kidsedu.com"),
   );
+
+  // Tải trạng thái xác thực và phiên đăng nhập khi khởi động
   useEffect(() => {
     supabaseService.getSession().then((session) => {
       if (session?.user) {
         setCurrentUser(session.user);
         loadCloudProgress(session.user.id);
       }
+      setIsAuthLoading(false);
+    }).catch(() => {
+      setIsAuthLoading(false);
     });
 
     const subscription = supabaseService.onAuthStateChange(
@@ -92,13 +124,43 @@ export default function App() {
     };
   }, []);
 
-  // Router Guard: Nếu chưa đăng nhập, bắt buộc quay về màn hình 'map' và mở AuthModal nếu cố tình truy cập các màn chơi/admin
+  // Lắng nghe thay đổi hash và phím Back/Forward của trình duyệt
   useEffect(() => {
+    const handleHashOrPopState = () => {
+      const screenFromUrl = getScreenFromHash();
+      if (screenFromUrl && screenFromUrl !== currentScreen) {
+        setCurrentScreen(screenFromUrl);
+      }
+    };
+    window.addEventListener('hashchange', handleHashOrPopState);
+    window.addEventListener('popstate', handleHashOrPopState);
+    return () => {
+      window.removeEventListener('hashchange', handleHashOrPopState);
+      window.removeEventListener('popstate', handleHashOrPopState);
+    };
+  }, [currentScreen]);
+
+  // Đồng bộ URL hash mỗi khi currentScreen thay đổi
+  useEffect(() => {
+    updateHashForScreen(currentScreen);
+  }, [currentScreen]);
+
+  // Router Guard: Bảo vệ màn chơi và admin, chỉ kích hoạt khi đã xác thực xong (isAuthLoading === false)
+  useEffect(() => {
+    if (isAuthLoading) return;
+
     if (!currentUser && currentScreen !== "map") {
       setCurrentScreen("map");
       setIsAuthOpen(true);
+      updateHashForScreen("map");
+      return;
     }
-  }, [currentUser, currentScreen]);
+
+    if (currentUser && currentScreen === "admin" && !isAdmin) {
+      setCurrentScreen("map");
+      updateHashForScreen("map");
+    }
+  }, [currentUser, currentScreen, isAuthLoading, isAdmin]);
 
   const loadCloudProgress = async (userId) => {
     try {

@@ -21,8 +21,14 @@ export default function AdminDashboard({
   onUpdatePlayerData, 
   onResetAllData 
 }) {
-  // Navigation Tab State
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'language' | 'math' | 'logic' | 'pet' | 'player' | 'cloud'
+  // Navigation Tab State - Lưu tab hiện tại vào localStorage để khi F5 vẫn giữ nguyên tab
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('kids_admin_active_tab') || 'overview';
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('kids_admin_active_tab', activeTab);
+  }, [activeTab]);
 
   // Master Collections
   const [words, setWords] = useState(() => dataManager.getWords());
