@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Sparkles, ShoppingBag, Utensils } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dataManager } from '../services/dataManager';
 import { sounds } from '../utils/sound';
+
+const DEFAULT_PETS = [
+  { id: 'cat', name: 'Bé Miu Miu', emoji: '🐱', sound: 'Meo meo~', hunger: 80, happiness: 90 },
+  { id: 'dog', name: 'Cún Lu Lu', emoji: '🐶', sound: 'Gâu gâu!', hunger: 75, happiness: 85 },
+  { id: 'rabbit', name: 'Thỏ Bông', emoji: '🐰', sound: 'Khịt khịt~', hunger: 90, happiness: 95 }
+];
+
+const DEFAULT_SHOP = [
+  { id: 1, name: 'Kem Dâu', type: 'food', emoji: '🍦', price: 15, hungerBoost: 25 },
+  { id: 2, name: 'Táo Đỏ', type: 'food', emoji: '🍎', price: 10, hungerBoost: 15 },
+  { id: 3, name: 'Bánh Donut', type: 'food', emoji: '🍩', price: 20, hungerBoost: 30 },
+  { id: 4, name: 'Sữa Tươi', type: 'food', emoji: '🥛', price: 12, hungerBoost: 20 },
+  { id: 5, name: 'Mũ Phù Thủy', type: 'hat', emoji: '🧙', price: 50, hungerBoost: 0 },
+  { id: 6, name: 'Mũ Vương Miện', type: 'hat', emoji: '👑', price: 80, hungerBoost: 0 },
+  { id: 7, name: 'Kính Râm Cool', type: 'hat', emoji: '🕶️', price: 40, hungerBoost: 0 },
+  { id: 8, name: 'Mũ Cao Bồi', type: 'hat', emoji: '🤠', price: 45, hungerBoost: 0 }
+];
 
 export default function PetSanctuary({ 
   onBack, 
@@ -11,12 +28,18 @@ export default function PetSanctuary({
   onUpdatePet, 
   onSpendCoins 
 }) {
-  const [shopItems, setShopItems] = useState(() => dataManager.getShopItems());
-  const [pets, setPets] = useState(() => dataManager.getPets());
+  const [shopItems, setShopItems] = useState(() => {
+    const items = dataManager.getShopItems();
+    return (items && items.length > 0) ? items : DEFAULT_SHOP;
+  });
+  const [pets, setPets] = useState(() => {
+    const list = dataManager.getPets();
+    return (list && list.length > 0) ? list : DEFAULT_PETS;
+  });
   const [selectedPet, setSelectedPet] = useState(() => {
     if (pet) return pet;
     const initialPets = dataManager.getPets();
-    return (initialPets && initialPets.length > 0) ? initialPets[0] : { id: 'cat', name: 'Bé Miu Miu', emoji: '🐱', sound: 'Meo meo~', hunger: 80, happiness: 90 };
+    return (initialPets && initialPets.length > 0) ? initialPets[0] : DEFAULT_PETS[0];
   });
   const [activeHat, setActiveHat] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
@@ -25,8 +48,8 @@ export default function PetSanctuary({
     return dataManager.subscribe(() => {
       const dbPets = dataManager.getPets();
       const dbShop = dataManager.getShopItems();
-      setPets(dbPets);
-      setShopItems(dbShop);
+      if (dbPets && dbPets.length > 0) setPets(dbPets);
+      if (dbShop && dbShop.length > 0) setShopItems(dbShop);
       if ((!selectedPet || !selectedPet.id) && dbPets && dbPets.length > 0) {
         setSelectedPet(dbPets[0]);
       }

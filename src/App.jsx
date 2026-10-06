@@ -315,7 +315,6 @@ export default function App() {
           coins={coins}
           level={level}
           pet={pet}
-          currentUser={currentUser}
           onResetData={handleResetData}
         />
       )}
@@ -345,7 +344,6 @@ export default function App() {
           setCurrentScreen('admin');
         }}
         onLogout={handleLogout}
-        onManualSync={handleManualSync}
         onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
       />
     </div>

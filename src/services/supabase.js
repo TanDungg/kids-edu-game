@@ -55,11 +55,17 @@ class SupabaseService {
     if (!this.client) return null;
     try {
       const { data, error } = await this.client.from('game_vocabulary').select('*').order('id', { ascending: true });
-      if (error) {
-        console.warn('Error fetching vocabulary:', error);
-        return null;
-      }
-      return data;
+      return (data || []).map(v => ({
+        id: v.id,
+        vn: v.vn,
+        en: v.en,
+        emoji: v.emoji || '⭐',
+        theme: v.theme || 'Tổng hợp',
+        targetVN: v.target_vn || (v.vn ? v.vn.toUpperCase().replace(/\s+/g, '') : ''),
+        targetEN: v.target_en || (v.en ? v.en.toUpperCase().replace(/\s+/g, '') : ''),
+        hintVN: v.hint_vn || `Đây là "${v.vn}"`,
+        hintEN: v.hint_en || `This is "${v.en}"`
+      }));
     } catch (e) {
       console.warn('Fetch vocabulary failed:', e);
       return null;
@@ -414,6 +420,19 @@ class SupabaseService {
     }
   }
 
+  async updateUserProfile(profileData) {
+    if (!this.client) throw new Error('Chưa kết nối Supabase API');
+    const { data, error } = await this.client.auth.updateUser({
+      data: profileData
+    });
+    if (error) throw error;
+    if (data?.user) {
+      this.currentUser = data.user;
+      await this.ensurePlayerProfile(data.user.id, profileData.full_name || data.user.email);
+    }
+    return data;
+  }
+
   async ensurePlayerProfile(userId, name) {
     if (!this.client || !userId) return;
     try {
@@ -461,34 +480,6 @@ class SupabaseService {
     });
     if (error) throw error;
     return data;
-  }
-
-  async updateUserProfile({ fullName, avatarUrl, birthDate, address, phone, notes }) {
-    if (!this.client) throw new Error('Chưa kết nối Supabase API');
-    const { data, error } = await this.client.auth.updateUser({
-      data: {
-        full_name: fullName,
-        avatar_url: avatarUrl,
-        birth_date: birthDate,
-        address: address,
-        phone: phone,
-        notes: notes
-      }
-    });
-    if (error) throw error;
-
-    if (data?.user?.id) {
-      try {
-        await this.client.from('players').upsert({
-          id: data.user.id,
-          name: fullName || 'Bé Thám Hiểm'
-        });
-      } catch (e) {
-        console.warn('Update players table warning:', e);
-      }
-    }
-
-    return data.user;
   }
 
   // ================= 8. THỐNG KÊ QUẢN TRỊ & BIỂU ĐỒ =================

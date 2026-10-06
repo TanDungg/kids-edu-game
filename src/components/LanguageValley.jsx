@@ -4,9 +4,20 @@ import confetti from 'canvas-confetti';
 import { dataManager, shuffleArray } from '../services/dataManager';
 import { sounds } from '../utils/sound';
 
+const DEFAULT_WORDS = [
+  { id: 1, vn: 'Con Mèo', en: 'Cat', emoji: '🐱', theme: 'Động vật', targetVN: 'MÈO', targetEN: 'CAT', hintVN: 'Loài vật thích bắt chuột, kêu meo meo', hintEN: 'A small pet that purrs' },
+  { id: 2, vn: 'Quả Táo', en: 'Apple', emoji: '🍎', theme: 'Trái cây', targetVN: 'TÁO', targetEN: 'APPLE', hintVN: 'Trái cây màu đỏ ngọt thơm, giòn tan', hintEN: 'A red sweet crunchy fruit' },
+  { id: 3, vn: 'Mặt Trời', en: 'Sun', emoji: '☀️', theme: 'Tự nhiên', targetVN: 'TRỜI', targetEN: 'SUN', hintVN: 'Tỏa ánh sáng ấm áp vào ban ngày', hintEN: 'Shines bright in daytime sky' },
+  { id: 4, vn: 'Chiếc Xe', en: 'Car', emoji: '🚗', theme: 'Phương tiện', targetVN: 'XE', targetEN: 'CAR', hintVN: 'Phương tiện có 4 bánh chạy trên đường', hintEN: 'Vehicle with four wheels' },
+  { id: 5, vn: 'Con Chó', en: 'Dog', emoji: '🐶', theme: 'Động vật', targetVN: 'CHÓ', targetEN: 'DOG', hintVN: 'Bạn bốn chân trung thành giữ nhà', hintEN: 'A faithful four-legged friend' }
+];
+
 export default function LanguageValley({ onBack, onCompleteLevel }) {
   // Shuffled question list for this play session
-  const [wordsList, setWordsList] = useState(() => dataManager.getShuffledWords());
+  const [wordsList, setWordsList] = useState(() => {
+    const list = dataManager.getShuffledWords();
+    return (list && list.length > 0) ? list : DEFAULT_WORDS;
+  });
   const [levelIndex, setLevelIndex] = useState(0);
   const [mode, setMode] = useState('VN'); // 'VN' or 'EN'
   const [currentGuess, setCurrentGuess] = useState([]);
@@ -16,12 +27,27 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
 
   useEffect(() => {
     return dataManager.subscribe(() => {
-      setWordsList(dataManager.getShuffledWords());
+      const dbList = dataManager.getShuffledWords();
+      if (dbList && dbList.length > 0) {
+        setWordsList(dbList);
+      }
     });
   }, []);
 
-  const currentLevel = (wordsList && wordsList.length > 0) ? (wordsList[levelIndex % wordsList.length] || wordsList[0]) : null;
-  const targetWord = currentLevel ? (mode === 'VN' ? currentLevel.targetVN : currentLevel.targetEN) : '';
+  const currentLevel = (wordsList && wordsList.length > 0) 
+    ? (wordsList[levelIndex % wordsList.length] || wordsList[0]) 
+    : DEFAULT_WORDS[0];
+
+  const getCleanTarget = (lvl, currentMode) => {
+    if (!lvl) return 'MÈO';
+    let raw = currentMode === 'VN' 
+      ? (lvl.targetVN || lvl.target_vn || lvl.vn || '') 
+      : (lvl.targetEN || lvl.target_en || lvl.en || '');
+    const clean = String(raw).toUpperCase().replace(/\s+/g, '');
+    return clean || (currentMode === 'VN' ? 'MÈO' : 'CAT');
+  };
+
+  const targetWord = getCleanTarget(currentLevel, mode);
 
   // Setup scrambled letters when level changes or mode changes
   useEffect(() => {
@@ -42,7 +68,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     // Plausible distractor letters that do not duplicate target letters
     const alphabet = 'ABCDEGHKLMNOPQRSTUVXY';
     const distractors = [];
-    while (distractors.length < 2) {
+    let attempts = 0;
+    while (distractors.length < 2 && attempts < 30) {
+      attempts++;
       const candidate = alphabet[Math.floor(Math.random() * alphabet.length)];
       if (!letters.includes(candidate) && !distractors.includes(candidate)) {
         distractors.push(candidate);
@@ -322,7 +350,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           </button>
           {showHint && (
             <div style={{ marginTop: '6px', fontSize: '14px', color: '#0369a1', background: '#f0f9ff', padding: '8px 16px', borderRadius: '12px', display: 'inline-block' }}>
-              💡 {mode === 'VN' ? currentLevel.hintVN : currentLevel.hintEN}
+              💡 {mode === 'VN' ? (currentLevel.hintVN || currentLevel.hint_vn || `Đây là từ "${currentLevel.vn}"`) : (currentLevel.hintEN || currentLevel.hint_en || `This is "${currentLevel.en}"`)}
             </div>
           )}
         </div>

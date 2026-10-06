@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, LogOut, Star, Coins, RefreshCw, Settings, User, Calendar, MapPin, Phone, Heart, Camera, Check, Edit3, ArrowLeft, Sparkles } from 'lucide-react';
+import { X, LogOut, Star, Coins, Settings, User, Calendar, MapPin, Phone, Heart, Camera, Check, Edit3, Save, Sparkles } from 'lucide-react';
 import { sounds } from '../utils/sound';
 import { supabaseService } from '../services/supabase';
 
+// Preset avatar options suitable for kids & parents
 const PRESET_AVATARS = [
-  { id: 'robot', label: 'Robot Vui Nhộn', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=RobotJoy' },
-  { id: 'cat', label: 'Mèo Miu Miu', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=KittyMiu' },
-  { id: 'dog', label: 'Cún Thông Thái', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=PuppySmart' },
-  { id: 'astro', label: 'Phi Hành Gia', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=AstroKid' },
-  { id: 'royal', label: 'Vương Giả Tí Hon', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=RoyalStar' },
-  { id: 'lion', label: 'Sư Tử Dũng Cảm', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=BraveLion' },
-  { id: 'panda', label: 'Gấu Trúc Nhỏ', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=PandaCute' },
-  { id: 'unicorn', label: 'Kỳ Lân Phép Thuật', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=MagicUnicorn' }
+  { id: 'boy', name: 'Bé Trai', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Felix&backgroundColor=b6e3f4' },
+  { id: 'girl', name: 'Bé Gái', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Daisy&backgroundColor=ffd5dc' },
+  { id: 'astro', name: 'Phi Hành Gia', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Cosmo&backgroundColor=c0aede' },
+  { id: 'cat', name: 'Miu Miu', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Mimi&backgroundColor=ffdfbf' },
+  { id: 'bear', name: 'Gấu Nâu', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Teddy&backgroundColor=d1d4f9' },
+  { id: 'robot', name: 'Robot Tí Hon', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Sparky&backgroundColor=b6e3f4' }
 ];
 
 export default function UserProfileModal({ 
@@ -24,106 +23,96 @@ export default function UserProfileModal({
   pet, 
   isAdmin,
   onOpenAdmin,
-  onLogout, 
-  onManualSync,
+  onLogout,
   onUpdateUser
 }) {
   if (!isOpen || !user) return null;
 
   const metadata = user.user_metadata || {};
   const [isEditing, setIsEditing] = useState(false);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Form states
-  const [fullName, setFullName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [notes, setNotes] = useState('');
+  const [fullName, setFullName] = useState(metadata.full_name || '');
+  const [avatarUrl, setAvatarUrl] = useState(
+    metadata.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email || 'user')}`
+  );
+  const [birthDate, setBirthDate] = useState(metadata.birth_date || '');
+  const [address, setAddress] = useState(metadata.address || '');
+  const [phone, setPhone] = useState(metadata.phone || '');
+  const [hobby, setHobby] = useState(metadata.hobby || '');
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  // Sync state whenever modal opens or user changes
   useEffect(() => {
-    if (user) {
-      const meta = user.user_metadata || {};
-      const savedLocal = (() => {
-        try {
-          return JSON.parse(localStorage.getItem(`kids_user_profile_${user.id}`) || '{}');
-        } catch {
-          return {};
-        }
-      })();
-
-      setFullName(meta.full_name || savedLocal.full_name || user.email?.split('@')[0] || 'Bé Thám Hiểm');
-      setAvatarUrl(meta.avatar_url || savedLocal.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email || 'kid')}`);
-      setBirthDate(meta.birth_date || savedLocal.birth_date || '');
-      setAddress(meta.address || savedLocal.address || '');
-      setPhone(meta.phone || savedLocal.phone || '');
-      setNotes(meta.notes || savedLocal.notes || '');
+    if (isOpen) {
+      setFullName(metadata.full_name || '');
+      setAvatarUrl(metadata.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email || 'user')}`);
+      setBirthDate(metadata.birth_date || '');
+      setAddress(metadata.address || '');
+      setPhone(metadata.phone || '');
+      setHobby(metadata.hobby || '');
       setIsEditing(false);
       setShowAvatarPicker(false);
-      setSuccessMsg('');
-      setErrorMsg('');
+      setSaveSuccess('');
+      setErrorMessage('');
     }
   }, [isOpen, user]);
+
+  // Calculate age if birthDate is set
+  const calculateAge = (bDate) => {
+    if (!bDate) return null;
+    const diff = Date.now() - new Date(bDate).getTime();
+    const ageDate = new Date(diff);
+    const calculated = Math.abs(ageDate.getUTCFullYear() - 1970);
+    return isNaN(calculated) || calculated <= 0 ? null : calculated;
+  };
+
+  const currentAge = calculateAge(birthDate);
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    sounds.playClick();
+    setIsSaving(true);
+    setErrorMessage('');
+    setSaveSuccess('');
+
+    try {
+      const payload = {
+        full_name: fullName.trim() || 'Bé Thám Hiểm',
+        avatar_url: avatarUrl,
+        birth_date: birthDate,
+        address: address.trim(),
+        phone: phone.trim(),
+        hobby: hobby.trim()
+      };
+
+      const result = await supabaseService.updateUserProfile(payload);
+      if (result?.user) {
+        sounds.playSuccess();
+        setSaveSuccess('🎉 Đã cập nhật hồ sơ thành công!');
+        if (onUpdateUser) {
+          onUpdateUser(result.user);
+        }
+        setTimeout(() => {
+          setIsEditing(false);
+          setSaveSuccess('');
+        }, 1200);
+      }
+    } catch (err) {
+      sounds.playError();
+      setErrorMessage('Không thể cập nhật hồ sơ. Vui lòng thử lại!');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLogoutClick = () => {
     sounds.playClick();
     if (window.confirm('Bé và ba mẹ có chắc muốn đăng xuất không? Dữ liệu đã được lưu an toàn trên đám mây!')) {
       onLogout();
       onClose();
-    }
-  };
-
-  const handleSelectPresetAvatar = (url) => {
-    sounds.playClick();
-    setAvatarUrl(url);
-    setShowAvatarPicker(false);
-  };
-
-  const handleSaveProfile = async (e) => {
-    e?.preventDefault();
-    sounds.playClick();
-    setIsLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    try {
-      const payload = {
-        fullName: fullName.trim() || 'Bé Thám Hiểm',
-        avatarUrl,
-        birthDate,
-        address: address.trim(),
-        phone: phone.trim(),
-        notes: notes.trim()
-      };
-
-      // 1. Save to Supabase Auth & DB
-      const updatedUser = await supabaseService.updateUserProfile(payload);
-
-      // 2. Save locally for instant persistence
-      localStorage.setItem(`kids_user_profile_${user.id}`, JSON.stringify(payload));
-
-      // 3. Update React parent state
-      if (onUpdateUser && updatedUser) {
-        onUpdateUser(updatedUser);
-      }
-
-      sounds.playSuccess();
-      setSuccessMsg('🎉 Đã cập nhật thông tin hồ sơ thành công!');
-      setTimeout(() => {
-        setIsEditing(false);
-        setSuccessMsg('');
-      }, 1000);
-    } catch (err) {
-      sounds.playError();
-      setErrorMsg(err.message || 'Không thể lưu hồ sơ, vui lòng thử lại!');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -153,14 +142,14 @@ export default function UserProfileModal({
           overflowY: 'auto'
         }}
       >
-        {/* Top Accent Gradient */}
+        {/* Top Accent */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           height: '8px',
-          background: 'linear-gradient(90deg, #10b981, #06b6d4, #8b5cf6, #ec4899)'
+          background: 'linear-gradient(90deg, #10b981, #06b6d4, #6366f1, #ec4899)'
         }} />
 
         {/* Close Button */}
@@ -188,377 +177,384 @@ export default function UserProfileModal({
           <X size={18} />
         </button>
 
-        {/* Feedback Alerts */}
-        {successMsg && (
-          <div className="animate-pop-in" style={{
-            background: '#f0fdf4',
-            border: '2px solid #bbf7d0',
-            color: '#15803d',
-            padding: '10px 14px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 700,
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Sparkles size={16} />
-            <span>{successMsg}</span>
+        {/* Header Title */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingRight: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '24px' }}>🌟</span>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+              {isEditing ? 'Cập Nhật Hồ Sơ' : 'Hồ Sơ Của Bé & Ba Mẹ'}
+            </h3>
           </div>
-        )}
+          {!isEditing && (
+            <button
+              onClick={() => { sounds.playClick(); setIsEditing(true); }}
+              className="btn-kid btn-blue"
+              style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              <Edit3 size={14} />
+              <span>Chỉnh sửa</span>
+            </button>
+          )}
+        </div>
 
-        {errorMsg && (
-          <div className="animate-shake" style={{
-            background: '#fef2f2',
-            border: '2px solid #fecaca',
-            color: '#b91c1c',
-            padding: '10px 14px',
-            borderRadius: '12px',
-            fontSize: '13px',
-            fontWeight: 700,
-            marginBottom: '16px'
-          }}>
-            {errorMsg}
-          </div>
-        )}
-
-        {/* Avatar & Main Identity */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto 12px' }}>
+        {/* Avatar Section */}
+        <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
             <div style={{
-              width: '90px',
-              height: '90px',
+              width: '88px',
+              height: '88px',
               borderRadius: '50%',
-              background: '#f8fafc',
-              border: '4px solid #38bdf8',
+              background: '#f0fdf4',
+              border: '4px solid #10b981',
               overflow: 'hidden',
+              margin: '0 auto',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 16px rgba(56, 189, 248, 0.2)'
+              boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)'
             }}>
               <img 
                 src={avatarUrl} 
-                alt={fullName} 
+                alt="Avatar" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }} 
+                onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=user`; }} 
               />
             </div>
-
-            {/* Change Avatar Button */}
-            <button
-              type="button"
-              onClick={() => {
-                sounds.playClick();
-                setShowAvatarPicker(!showAvatarPicker);
-              }}
-              title="Đổi hình đại diện"
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                background: '#0284c7',
-                color: '#ffffff',
-                border: '2px solid #ffffff',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-              }}
-            >
-              <Camera size={16} />
-            </button>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => { sounds.playClick(); setShowAvatarPicker(!showAvatarPicker); }}
+                style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '0',
+                  background: '#0284c7',
+                  border: '2px solid #ffffff',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                }}
+                title="Chọn ảnh đại diện"
+              >
+                <Camera size={16} />
+              </button>
+            )}
           </div>
 
-          {/* Quick Avatar Picker Dialog */}
-          {showAvatarPicker && (
+          {!isEditing ? (
+            <div style={{ marginTop: '10px' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '22px',
+                fontWeight: 800,
+                color: '#1e293b',
+                margin: '0 0 2px'
+              }}>
+                {fullName || 'Bé Thám Hiểm'}
+              </h2>
+              <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+                {user.email}
+              </div>
+            </div>
+          ) : (
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#0284c7', fontWeight: 700 }}>
+              {showAvatarPicker ? 'Bấm vào hình bên dưới để đổi avatar nhé:' : 'Bấm vào biểu tượng máy ảnh 📷 để đổi ảnh đại diện'}
+            </div>
+          )}
+
+          {/* Quick Avatar Picker in Editing Mode */}
+          {isEditing && showAvatarPicker && (
             <div className="animate-pop-in" style={{
               background: '#f8fafc',
-              border: '2px solid #cbd5e1',
-              borderRadius: '18px',
+              border: '2px dashed #cbd5e1',
+              borderRadius: '16px',
               padding: '12px',
-              marginBottom: '14px',
-              textAlign: 'left'
+              marginTop: '12px'
             }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Chọn hình đại diện dễ thương:</span>
-                <button
-                  type="button"
-                  onClick={() => setShowAvatarPicker(false)}
-                  style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
-                >
-                  Đóng ✕
-                </button>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                Chọn một nhân vật bé thích:
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                {PRESET_AVATARS.map((av) => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+                {PRESET_AVATARS.map((p) => (
                   <button
-                    key={av.id}
+                    key={p.id}
                     type="button"
-                    onClick={() => handleSelectPresetAvatar(av.url)}
-                    style={{
-                      background: avatarUrl === av.url ? '#e0f2fe' : '#ffffff',
-                      border: avatarUrl === av.url ? '2px solid #0284c7' : '1.5px solid #e2e8f0',
-                      borderRadius: '14px',
-                      padding: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'transform 0.15s'
+                    onClick={() => {
+                      sounds.playClick();
+                      setAvatarUrl(p.url);
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                    style={{
+                      border: avatarUrl === p.url ? '3px solid #10b981' : '2px solid #e2e8f0',
+                      borderRadius: '50%',
+                      padding: 0,
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      overflow: 'hidden',
+                      width: '42px',
+                      height: '42px',
+                      transform: avatarUrl === p.url ? 'scale(1.1)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title={p.name}
                   >
-                    <img src={av.url} alt={av.label} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-                    <span style={{ fontSize: '9px', fontWeight: 800, color: '#475569', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '60px' }}>
-                      {av.label}
-                    </span>
+                    <img src={p.url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </button>
                 ))}
               </div>
             </div>
           )}
-
-          <h2 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '22px',
-            fontWeight: 800,
-            color: '#1e293b',
-            margin: '0 0 2px'
-          }}>
-            {fullName || 'Bé Thám Hiểm'}
-          </h2>
-
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
-            {user.email}
-          </div>
         </div>
 
-        {/* PROFILE INFO & EDIT SECTION */}
-        {!isEditing ? (
-          /* VIEW MODE */
-          <div style={{
-            background: '#f8fafc',
-            borderRadius: '20px',
-            padding: '16px',
-            border: '2px solid #e2e8f0',
-            marginBottom: '16px'
+        {/* Feedback Messages */}
+        {saveSuccess && (
+          <div className="animate-pop-in" style={{
+            background: '#ecfdf5',
+            border: '2px solid #a7f3d0',
+            color: '#065f46',
+            padding: '10px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 700,
+            textAlign: 'center',
+            marginBottom: '14px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <User size={16} color="#0284c7" />
-                <span>Thông Tin Cá Nhân</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  sounds.playClick();
-                  setIsEditing(true);
-                }}
-                className="btn-kid btn-blue"
-                style={{ padding: '6px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Edit3 size={13} />
-                <span>Chỉnh Sửa</span>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                <Calendar size={15} color="#8b5cf6" style={{ flexShrink: 0 }} />
-                <span><strong>Ngày sinh:</strong> {birthDate ? new Date(birthDate).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                <MapPin size={15} color="#ec4899" style={{ flexShrink: 0 }} />
-                <span><strong>Địa chỉ:</strong> {address || 'Chưa cập nhật'}</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                <Phone size={15} color="#10b981" style={{ flexShrink: 0 }} />
-                <span><strong>SĐT Ba Mẹ:</strong> {phone || 'Chưa cập nhật'}</span>
-              </div>
-
-              {notes && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#475569' }}>
-                  <Heart size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
-                  <span><strong>Sở thích của bé:</strong> {notes}</span>
-                </div>
-              )}
-            </div>
+            {saveSuccess}
           </div>
-        ) : (
-          /* EDIT MODE FORM */
-          <form onSubmit={handleSaveProfile} style={{
-            background: '#f8fafc',
-            borderRadius: '20px',
-            padding: '16px',
-            border: '2px solid #bfdbfe',
-            marginBottom: '16px'
-          }}>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Edit3 size={16} color="#0284c7" />
-              <span>Chỉnh Sửa Hồ Sơ Tài Khoản</span>
-            </div>
+        )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {/* Name */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
-                  Họ và tên của bé hoặc Ba Mẹ:
-                </label>
+        {errorMessage && (
+          <div className="animate-shake" style={{
+            background: '#fef2f2',
+            border: '2px solid #fecaca',
+            color: '#b91c1c',
+            padding: '10px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 700,
+            textAlign: 'center',
+            marginBottom: '14px'
+          }}>
+            {errorMessage}
+          </div>
+        )}
+
+        {/* EDITING FORM */}
+        {isEditing ? (
+          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                Tên Của Bé hoặc Ba Mẹ:
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Bé Bắp, Dũng..."
+                  placeholder="Vd: Bé Bắp, Minh Anh..."
                   required
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
+                    padding: '8px 10px 8px 34px',
                     borderRadius: '10px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '13px',
                     outline: 'none',
+                    fontWeight: 600,
                     boxSizing: 'border-box'
                   }}
                 />
               </div>
+            </div>
 
-              {/* Birth Date */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
-                  Ngày sinh của bé:
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Ngày Sinh Của Bé:
                 </label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <Calendar size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 8px 8px 34px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      fontWeight: 600,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* Address */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
-                  Địa chỉ / Tỉnh thành:
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                  Số Điện Thoại Phụ Huynh:
                 </label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Vd: 0912..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 34px',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      fontWeight: 600,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                Địa Chỉ / Tỉnh Thành:
+              </label>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Ví dụ: Cầu Giấy, Hà Nội hoặc TP.HCM"
+                  placeholder="Vd: Hà Nội, TP. Hồ Chí Minh..."
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
+                    padding: '8px 10px 8px 34px',
                     borderRadius: '10px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '13px',
                     outline: 'none',
+                    fontWeight: 600,
                     boxSizing: 'border-box'
                   }}
                 />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
-                  Số điện thoại liên hệ của Ba Mẹ:
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ví dụ: 0912 345 678"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Hobbies / Notes */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
-                  Sở thích / Ghi chú của bé:
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ví dụ: Thích học toán, xem phim hoạt hình, yêu mèo..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Form Buttons */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-kid btn-green"
-                  style={{ flex: 1, padding: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >
-                  <Check size={16} />
-                  <span>{isLoading ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '12px',
-                    border: '1.5px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#64748b',
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Hủy
-                </button>
               </div>
             </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                Sở Thích / Ước Mơ Của Bé:
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Heart size={16} color="#ec4899" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  value={hobby}
+                  onChange={(e) => setHobby(e.target.value)}
+                  placeholder="Vd: Khám phá vũ trụ, vẽ tranh, học toán..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px 8px 34px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    fontWeight: 600,
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn-kid btn-green"
+                style={{ flex: 1, padding: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Save size={16} />
+                <span>{isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { sounds.playClick(); setIsEditing(false); }}
+                className="btn-kid"
+                style={{ padding: '10px 16px', fontSize: '13px', background: '#f1f5f9', color: '#475569', border: '1.5px solid #cbd5e1' }}
+              >
+                Hủy
+              </button>
+            </div>
           </form>
+        ) : (
+          /* READ-ONLY INFO CARD */
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            padding: '14px',
+            border: '1.5px solid #e2e8f0',
+            marginBottom: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            fontSize: '13px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                <Calendar size={15} color="#0284c7" />
+                <span>Ngày sinh:</span>
+              </span>
+              <span style={{ fontWeight: 800, color: '#1e293b' }}>
+                {birthDate ? `${birthDate} ${currentAge ? `(Bé ${currentAge} tuổi)` : ''}` : 'Chưa cập nhật'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                <MapPin size={15} color="#10b981" />
+                <span>Địa chỉ:</span>
+              </span>
+              <span style={{ fontWeight: 800, color: '#1e293b' }}>
+                {address || 'Chưa cập nhật'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                <Phone size={15} color="#f59e0b" />
+                <span>Điện thoại:</span>
+              </span>
+              <span style={{ fontWeight: 800, color: '#1e293b' }}>
+                {phone || 'Chưa cập nhật'}
+              </span>
+            </div>
+
+            {hobby && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                  <Heart size={15} color="#ec4899" />
+                  <span>Sở thích:</span>
+                </span>
+                <span style={{ fontWeight: 800, color: '#db2777' }}>
+                  {hobby}
+                </span>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Progress Overview Card */}
         <div style={{
-          background: '#f8fafc',
-          borderRadius: '20px',
+          background: '#ffffff',
+          borderRadius: '18px',
           padding: '14px',
           border: '2px solid #e2e8f0',
           marginBottom: '16px'
@@ -569,23 +565,23 @@ export default function UserProfileModal({
             gap: '8px',
             textAlign: 'center'
           }}>
-            <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #cbd5e1' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>CẤP ĐỘ</div>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#0284c7' }}>Cấp {level}</div>
+            <div style={{ background: '#f0f9ff', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #bae6fd' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#0369a1', marginBottom: '2px' }}>CẤP ĐỘ</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#0284c7' }}>Cấp {level}</div>
             </div>
 
-            <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #cbd5e1' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>SAO VÀNG</div>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                <Star size={15} fill="#facc15" color="#eab308" />
+            <div style={{ background: '#fefce8', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #fef08a' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#a16207', marginBottom: '2px' }}>SAO VÀNG</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <Star size={16} fill="#facc15" color="#eab308" />
                 <span>{stars}</span>
               </div>
             </div>
 
-            <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #cbd5e1' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>XU VÀNG</div>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                <Coins size={15} fill="#fbbf24" color="#d97706" />
+            <div style={{ background: '#fffbeb', padding: '8px 4px', borderRadius: '12px', border: '1.5px solid #fde68a' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', marginBottom: '2px' }}>XU VÀNG</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                <Coins size={16} fill="#fbbf24" color="#d97706" />
                 <span>{coins}</span>
               </div>
             </div>
@@ -595,9 +591,9 @@ export default function UserProfileModal({
             <div style={{
               marginTop: '10px',
               padding: '8px 12px',
-              background: '#ffffff',
+              background: '#f8fafc',
               borderRadius: '12px',
-              border: '1.5px solid #cbd5e1',
+              border: '1px solid #cbd5e1',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -620,7 +616,7 @@ export default function UserProfileModal({
               }}
               className="btn-kid btn-yellow"
               style={{
-                padding: '10px',
+                padding: '9px',
                 fontSize: '13px',
                 display: 'flex',
                 alignItems: 'center',
@@ -629,28 +625,7 @@ export default function UserProfileModal({
               }}
             >
               <Settings size={15} />
-              <span>Truy Cập Trang Quản Trị Hệ Thống (Admin)</span>
-            </button>
-          )}
-
-          {onManualSync && (
-            <button
-              onClick={() => {
-                sounds.playSuccess();
-                onManualSync();
-              }}
-              className="btn-kid btn-green"
-              style={{
-                padding: '10px',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <RefreshCw size={15} />
-              <span>Đồng bộ tiến độ lên Cloud ngay</span>
+              <span>Trang Quản Trị Hệ Thống (Admin)</span>
             </button>
           )}
 
@@ -658,7 +633,7 @@ export default function UserProfileModal({
             onClick={handleLogoutClick}
             className="btn-kid btn-red"
             style={{
-              padding: '10px',
+              padding: '9px',
               fontSize: '13px',
               display: 'flex',
               alignItems: 'center',
