@@ -3,7 +3,8 @@ import {
   ArrowLeft, Plus, Trash2, Sparkles, Volume2, PackagePlus, 
   RotateCcw, CheckCircle2, FileSpreadsheet, Download, Upload, Smile,
   LayoutDashboard, BookOpen, Calculator, Brain, Dog, ShoppingBag, 
-  User, Database, RefreshCw, BarChart3, Copy, Check, Info, Coins, Star, Trophy, Search, Activity, PieChart, Users
+  User, Database, RefreshCw, BarChart3, Copy, Check, Info, Coins, Star, Trophy, Search, Activity, PieChart, Users,
+  Zap, Wand2, X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import * as XLSX from 'xlsx';
@@ -104,6 +105,16 @@ export default function AdminDashboard({
   const [logicSearch, setLogicSearch] = useState('');
   const [logicTypeFilter, setLogicTypeFilter] = useState('all');
 
+  // Batch Generator Modal & Smart Creation States
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [genTab, setGenTab] = useState('quick_text'); // 'quick_text' | 'math' | 'logic'
+  const [quickText, setQuickText] = useState('');
+  const [quickTheme, setQuickTheme] = useState('auto');
+  const [mathGenCount, setMathGenCount] = useState(10);
+  const [mathGenCat, setMathGenCat] = useState('all');
+  const [logicGenCount, setLogicGenCount] = useState(10);
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+
   const fetchCloudUserData = async () => {
     setIsLoadingUsers(true);
     try {
@@ -141,6 +152,113 @@ export default function AdminDashboard({
     sounds.playSuccess();
     notify(`Đồng bộ thành công từ Database: ${refreshed.words.length} từ vựng, ${refreshed.mathLevels.length} câu toán! 🚀`);
     if (onDataChanged) onDataChanged();
+  };
+
+  // ⚡ 1-Click Master Data Seeder (100+ items)
+  const handleSeedDatabaseFull = async () => {
+    if (!window.confirm('⚡ Bạn có chắc chắn muốn nạp TOÀN BỘ 100+ dữ liệu mẫu khổng lồ (50 từ vựng phong phú, 20 bài toán, 15 câu đố logic, 6 thú cưng, 12 vật phẩm shop)? Thao tác này sẽ đồng bộ vào Database và bộ nhớ máy ngay tức thì!')) {
+      return;
+    }
+    sounds.playClick();
+    setIsBatchGenerating(true);
+    notify('Đang nạp 100+ dữ liệu vào hệ thống và Database...');
+    try {
+      const counts = await dataManager.seedFullDatabase();
+      setWords([...dataManager.getWords()]);
+      setMathLevels([...dataManager.getMathLevels()]);
+      setLogicLevels([...dataManager.getLogicLevels()]);
+      setPets([...dataManager.getPets()]);
+      setShopItems([...dataManager.getShopItems()]);
+      sounds.playSuccess();
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      notify(`🎉 Đã nạp thành công 100+ dữ liệu: ${counts.wordsCount} từ vựng, ${counts.mathCount} toán, ${counts.logicCount} logic, ${counts.petsCount} thú cưng! 🚀`);
+      if (onDataChanged) onDataChanged();
+    } catch (err) {
+      sounds.playError();
+      notify(`Lỗi khi nạp dữ liệu: ${err.message}`);
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  };
+
+  // 📝 Xử lý nạp văn bản nhanh (Quick text paste)
+  const handleBatchAddQuickWords = async () => {
+    if (!quickText.trim()) {
+      sounds.playError();
+      notify('Vui lòng nhập hoặc dán danh sách từ vào ô nhập liệu!');
+      return;
+    }
+    setIsBatchGenerating(true);
+    sounds.playClick();
+    notify('Đang phân tích từ, dò emoji và dịch tự động...');
+    try {
+      const parsed = dataManager.parseQuickTextWords(quickText);
+      if (parsed.length === 0) {
+        sounds.playError();
+        notify('Không tìm thấy từ hợp lệ để nạp!');
+        setIsBatchGenerating(false);
+        return;
+      }
+
+      // Ghi đè chủ đề nếu người dùng chọn cụ thể
+      const finalItems = parsed.map(item => ({
+        ...item,
+        theme: quickTheme !== 'auto' ? quickTheme : item.theme
+      }));
+
+      const added = await dataManager.batchAddWords(finalItems);
+      setWords([...dataManager.getWords()]);
+      sounds.playSuccess();
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      notify(`🚀 Đã thêm cấp tốc ${added} từ vựng mới cùng Emoji & Tiếng Anh vào Database!`);
+      setQuickText('');
+      if (onDataChanged) onDataChanged();
+    } catch (err) {
+      sounds.playError();
+      notify(`Lỗi nạp từ: ${err.message}`);
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  };
+
+  // 🧮 Xử lý tự động sinh câu hỏi Toán
+  const handleBatchGenerateMath = async () => {
+    setIsBatchGenerating(true);
+    sounds.playClick();
+    notify(`Đang tạo tự động ${mathGenCount} câu hỏi Toán sinh động...`);
+    try {
+      const count = dataManager.generateSmartMathLevels(Number(mathGenCount), mathGenCat);
+      setMathLevels([...dataManager.getMathLevels()]);
+      sounds.playSuccess();
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      notify(`➕ Đã tạo và nạp thành công ${count} bài tập toán vào Database!`);
+      if (onDataChanged) onDataChanged();
+    } catch (err) {
+      sounds.playError();
+      notify(`Lỗi sinh bài tập toán: ${err.message}`);
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  };
+
+  // 🧩 Xử lý tự động sinh câu đố Logic
+  const handleBatchGenerateLogic = async () => {
+    setIsBatchGenerating(true);
+    sounds.playClick();
+    notify(`Đang tạo tự động ${logicGenCount} câu đố Logic tư duy...`);
+    try {
+      const count = dataManager.generateSmartLogicLevels(Number(logicGenCount));
+      setLogicLevels([...dataManager.getLogicLevels()]);
+      sounds.playSuccess();
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      notify(`🧩 Đã tạo và nạp thành công ${count} câu đố logic vào Database!`);
+      if (onDataChanged) onDataChanged();
+    } catch (err) {
+      sounds.playError();
+      notify(`Lỗi sinh câu đố logic: ${err.message}`);
+    } finally {
+      setIsBatchGenerating(false);
+    }
   };
 
   // ===================== 1. XỬ LÝ TỪ VỰNG =====================
@@ -672,6 +790,55 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
 
         {/* Global Action Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* NẠP 100+ DỮ LIỆU KHỦNG (1-CLICK MASTER SEED) */}
+          <button 
+            onClick={handleSeedDatabaseFull} 
+            disabled={isBatchGenerating}
+            style={{ 
+              padding: '8px 16px', 
+              fontSize: '12px',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '16px',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isBatchGenerating ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            title="Nạp tức thì 100+ câu hỏi và bài học mẫu chất lượng cao (50 từ vựng, 20 toán, 15 logic) vào database"
+          >
+            <Zap size={14} />
+            <span>⚡ Nạp 100+ Dữ Liệu Khủng</span>
+          </button>
+
+          {/* SIÊU TRÌNH TẠO TỰ ĐỘNG (SMART BATCH GENERATOR) */}
+          <button 
+            onClick={() => { sounds.playClick(); setIsGeneratorOpen(true); }}
+            style={{ 
+              padding: '8px 16px', 
+              fontSize: '12px',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '16px',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            title="Dán chữ tự nhận dạng emoji & dịch tiếng Anh, hoặc tự sinh hàng loạt bài tập toán/logic"
+          >
+            <Wand2 size={14} />
+            <span>🤖 Tạo Hàng Loạt Tự Động</span>
+          </button>
+
           <button 
             onClick={handleSyncDatabase} 
             className="btn-kid btn-green" 
@@ -2697,6 +2864,503 @@ CREATE POLICY "Allow public game_progress" ON public.game_progress FOR ALL TO pu
 ALTER TABLE public.learning_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO public USING (true) WITH CHECK (true);`}
               </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== SIÊU CÔNG CỤ TẠO DỮ LIỆU TỰ ĐỘNG MODAL ===================== */}
+      {isGeneratorOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div className="animate-pop-in" style={{
+            background: '#ffffff',
+            borderRadius: '28px',
+            border: '4px solid #e0e7ff',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            width: '100%',
+            maxWidth: '760px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              padding: '18px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#ffffff'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '16px',
+                  width: '42px',
+                  height: '42px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Wand2 size={24} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, fontFamily: 'var(--font-display)' }}>
+                    🤖 Siêu Công Cụ Nạp Dữ Liệu Tự Động (Smart Batch Generator)
+                  </h3>
+                  <div style={{ fontSize: '12px', opacity: 0.9, marginTop: '2px' }}>
+                    Thêm hàng chục câu hỏi chỉ trong 3 giây mà không cần nhập từng cái
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => { sounds.playClick(); setIsGeneratorOpen(false); }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Sub-tabs inside modal */}
+            <div style={{
+              display: 'flex',
+              borderBottom: '2px solid #e2e8f0',
+              background: '#f8fafc',
+              padding: '8px 16px 0 16px',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => { sounds.playClick(); setGenTab('quick_text'); }}
+                style={{
+                  padding: '10px 18px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  border: 'none',
+                  borderBottom: genTab === 'quick_text' ? '3px solid #6366f1' : '3px solid transparent',
+                  background: 'transparent',
+                  color: genTab === 'quick_text' ? '#4f46e5' : '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>📝 Dán Chữ Nhanh (Song Ngữ + Emoji)</span>
+              </button>
+              <button
+                onClick={() => { sounds.playClick(); setGenTab('math'); }}
+                style={{
+                  padding: '10px 18px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  border: 'none',
+                  borderBottom: genTab === 'math' ? '3px solid #6366f1' : '3px solid transparent',
+                  background: 'transparent',
+                  color: genTab === 'math' ? '#4f46e5' : '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>🧮 Sinh Đề Toán Tự Động</span>
+              </button>
+              <button
+                onClick={() => { sounds.playClick(); setGenTab('logic'); }}
+                style={{
+                  padding: '10px 18px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  border: 'none',
+                  borderBottom: genTab === 'logic' ? '3px solid #6366f1' : '3px solid transparent',
+                  background: 'transparent',
+                  color: genTab === 'logic' ? '#4f46e5' : '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>🧩 Sinh Câu Đố Logic</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              {genTab === 'quick_text' && (
+                <div>
+                  <div style={{
+                    background: '#eff6ff',
+                    border: '1.5px solid #bfdbfe',
+                    borderRadius: '16px',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    color: '#1e40af',
+                    lineHeight: 1.5
+                  }}>
+                    💡 <strong>Cách dùng siêu tốc:</strong> Gõ hoặc dán danh sách từ vựng cách nhau bằng dấu phẩy (<code>,</code>) hoặc xuống dòng. Hệ thống sẽ <strong>tự động dịch sang Tiếng Anh, tự động gắn icon Emoji chuẩn và tạo câu đố</strong>!
+                  </div>
+
+                  {/* Preset chips */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>
+                      ⚡ Bấm nạp sẵn bộ từ gợi ý (Không cần gõ):
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {[
+                        { label: '🐾 13 Thú Rừng', text: 'sư tử, hổ, báo, voi, khỉ, gấu bắc cực, hươu cao cổ, ngựa vằn, hà mã, tê giác, cá sấu, sóc, cáo', theme: 'Động vật' },
+                        { label: '🐬 9 Thủy Cung', text: 'cá voi, cá mập, bạch tuộc, sao biển, con cua, tôm, mực, cá heo, chim bồ câu', theme: 'Động vật' },
+                        { label: '🍓 10 Trái Cây', text: 'quả dâu, quả nho, dưa hấu, quả đào, quả lê, dứa, chanh, cherry, dưa lưới, quả chuối', theme: 'Trái cây' },
+                        { label: '🥦 6 Rau Củ', text: 'súp lơ, hành tây, khoai tây, cà rốt, bắp ngô, nấm hương', theme: 'Rau củ' },
+                        { label: '🚗 8 Phương Tiện', text: 'xe máy, trực thăng, thuyền buồm, xe cứu hỏa, xe cảnh sát, xe cấp cứu, tàu hỏa, khinh khí cầu', theme: 'Phương tiện' }
+                      ].map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            sounds.playClick();
+                            setQuickText(preset.text);
+                            setQuickTheme(preset.theme);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: '#334155',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Textarea */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>
+                        Danh sách từ vựng (Tiếng Việt hoặc cú pháp "Từ VN: Từ EN"):
+                      </label>
+                      {quickText.trim() && (
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
+                          ✓ Phát hiện: {dataManager.parseQuickTextWords(quickText).length} từ vựng
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={quickText}
+                      onChange={(e) => setQuickText(e.target.value)}
+                      placeholder="Ví dụ: sư tử, hổ, cá sấu, hươu cao cổ, hà mã, ngựa vằn..."
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        borderRadius: '14px',
+                        border: '2px solid #cbd5e1',
+                        fontSize: '14px',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                        lineHeight: 1.5
+                      }}
+                    />
+                  </div>
+
+                  {/* Preview detected words badges */}
+                  {quickText.trim() && (
+                    <div style={{
+                      marginBottom: '16px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '14px',
+                      padding: '10px 14px',
+                      maxHeight: '110px',
+                      overflowY: 'auto'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
+                        Xem trước nhận diện tự động ({dataManager.parseQuickTextWords(quickText).length} từ):
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {dataManager.parseQuickTextWords(quickText).map((item, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '8px',
+                              padding: '3px 8px',
+                              fontSize: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 600
+                            }}
+                          >
+                            <span>{item.emoji}</span>
+                            <span style={{ color: '#0f172a' }}>{item.vn}</span>
+                            <span style={{ color: '#64748b', fontSize: '11px' }}>({item.en})</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Theme override */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+                      Chủ đề gán cho bộ từ này:
+                    </label>
+                    <select
+                      value={quickTheme}
+                      onChange={(e) => setQuickTheme(e.target.value)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '12px',
+                        border: '2px solid #cbd5e1',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#1e293b'
+                      }}
+                    >
+                      <option value="auto">✨ Tự động nhận diện theo từ</option>
+                      <option value="Động vật">🐾 Động vật</option>
+                      <option value="Trái cây">🍎 Trái cây</option>
+                      <option value="Rau củ">🥦 Rau củ</option>
+                      <option value="Phương tiện">🚗 Phương tiện</option>
+                      <option value="Món ăn">🍕 Món ăn</option>
+                      <option value="Thiên nhiên">☀️ Thiên nhiên</option>
+                      <option value="Tổng hợp">🌈 Tổng hợp</option>
+                    </select>
+                  </div>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={handleBatchAddQuickWords}
+                    disabled={isBatchGenerating || !quickText.trim()}
+                    className="btn-kid btn-green"
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      fontSize: '15px',
+                      justifyContent: 'center',
+                      opacity: (!quickText.trim() || isBatchGenerating) ? 0.6 : 1
+                    }}
+                  >
+                    <Zap size={18} />
+                    <span>⚡ Nạp Cấp Tốc Vào Game & Database Ngay</span>
+                  </button>
+                </div>
+              )}
+
+              {genTab === 'math' && (
+                <div>
+                  <div style={{
+                    background: '#fef3c7',
+                    border: '1.5px solid #fde68a',
+                    borderRadius: '16px',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    color: '#92400e',
+                    lineHeight: 1.5
+                  }}>
+                    🧮 <strong>Thuật toán sinh đề toán học:</strong> Tự động phối hợp các dạng câu hỏi (Đếm số lượng quả/con vật, Phép cộng trực quan trong phạm vi 10, So sánh bên nhiều/ít hơn) với hình ảnh sinh động và các đáp án nhiễu logic.
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                        Số lượng câu muốn tạo:
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {[5, 10, 20].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => { sounds.playClick(); setMathGenCount(num); }}
+                            style={{
+                              flex: 1,
+                              padding: '10px 0',
+                              borderRadius: '12px',
+                              fontWeight: 800,
+                              fontSize: '14px',
+                              border: mathGenCount === num ? '2px solid #f59e0b' : '2px solid #e2e8f0',
+                              background: mathGenCount === num ? '#fffbeb' : '#ffffff',
+                              color: mathGenCount === num ? '#b45309' : '#64748b',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {num} câu
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                        Thể loại bài toán:
+                      </label>
+                      <select
+                        value={mathGenCat}
+                        onChange={(e) => setMathGenCat(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: '2px solid #cbd5e1',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: '#1e293b'
+                        }}
+                      >
+                        <option value="all">🎲 Phối hợp ngẫu nhiên (Đếm + Cộng + So sánh)</option>
+                        <option value="count">🔢 Chỉ câu hỏi Đếm đồ vật</option>
+                        <option value="addition">➕ Chỉ câu hỏi Phép cộng sinh động</option>
+                        <option value="compare">⚖️ Chỉ câu hỏi So sánh số lượng</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleBatchGenerateMath}
+                    disabled={isBatchGenerating}
+                    className="btn-kid btn-yellow"
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      fontSize: '15px',
+                      justifyContent: 'center',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#ffffff'
+                    }}
+                  >
+                    <Calculator size={18} />
+                    <span>➕ Sinh Ngay {mathGenCount} Bài Tập Toán Vào Game</span>
+                  </button>
+                </div>
+              )}
+
+              {genTab === 'logic' && (
+                <div>
+                  <div style={{
+                    background: '#f3e8ff',
+                    border: '1.5px solid #e9d5ff',
+                    borderRadius: '16px',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    color: '#6b21a8',
+                    lineHeight: 1.5
+                  }}>
+                    🧩 <strong>Thuật toán sinh câu đố Logic:</strong> Tự động tạo các câu hỏi quy luật chuỗi hình ảnh luân phiên (A - B - A - B - ?), màu sắc đối lập, động vật và hình khối để kích thích tư duy logic của bé.
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                      Số lượng câu đố logic muốn tạo:
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
+                      {[5, 10, 15].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => { sounds.playClick(); setLogicGenCount(num); }}
+                          style={{
+                            flex: 1,
+                            padding: '10px 0',
+                            borderRadius: '12px',
+                            fontWeight: 800,
+                            fontSize: '14px',
+                            border: logicGenCount === num ? '2px solid #8b5cf6' : '2px solid #e2e8f0',
+                            background: logicGenCount === num ? '#faf5ff' : '#ffffff',
+                            color: logicGenCount === num ? '#6b21a8' : '#64748b',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {num} câu
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleBatchGenerateLogic}
+                    disabled={isBatchGenerating}
+                    className="btn-kid btn-purple"
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      fontSize: '15px',
+                      justifyContent: 'center',
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                      color: '#ffffff'
+                    }}
+                  >
+                    <Brain size={18} />
+                    <span>🧩 Sinh Ngay {logicGenCount} Câu Đố Tư Duy Logic</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer with summary note */}
+            <div style={{
+              background: '#f8fafc',
+              borderTop: '2px solid #e2e8f0',
+              padding: '12px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              color: '#64748b'
+            }}>
+              <span>💾 Dữ liệu tạo ra được tự động lưu vào LocalStorage và đồng bộ Supabase Cloud.</span>
+              <button
+                onClick={() => { sounds.playClick(); setIsGeneratorOpen(false); }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#475569',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                Đóng cửa sổ
+              </button>
             </div>
           </div>
         </div>

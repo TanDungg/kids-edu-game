@@ -3,6 +3,13 @@
 import * as XLSX from 'xlsx';
 import { supabaseService } from './supabase';
 import { autoDetectEmoji } from '../utils/emojiDetector';
+import { 
+  LANGUAGE_LEVELS, 
+  MATH_LEVELS, 
+  LOGIC_LEVELS, 
+  INITIAL_PETS, 
+  PET_SHOP_ITEMS 
+} from '../data/gameData';
 
 const STORAGE_KEY_WORDS = 'kids_game_custom_words';
 const STORAGE_KEY_MATH = 'kids_game_custom_math';
@@ -24,11 +31,20 @@ export function shuffleArray(arr) {
 class DataManager {
   constructor() {
     this.listeners = new Set();
-    this.words = this.loadLocal(STORAGE_KEY_WORDS);
-    this.mathLevels = this.loadLocal(STORAGE_KEY_MATH);
-    this.logicLevels = this.loadLocal(STORAGE_KEY_LOGIC);
-    this.pets = this.loadLocal(STORAGE_KEY_PETS);
-    this.shopItems = this.loadLocal(STORAGE_KEY_SHOP);
+    const localWords = this.loadLocal(STORAGE_KEY_WORDS);
+    this.words = localWords.length > 0 ? localWords : [...LANGUAGE_LEVELS];
+
+    const localMath = this.loadLocal(STORAGE_KEY_MATH);
+    this.mathLevels = localMath.length > 0 ? localMath : [...MATH_LEVELS];
+
+    const localLogic = this.loadLocal(STORAGE_KEY_LOGIC);
+    this.logicLevels = localLogic.length > 0 ? localLogic : [...LOGIC_LEVELS];
+
+    const localPets = this.loadLocal(STORAGE_KEY_PETS);
+    this.pets = localPets.length > 0 ? localPets : [...INITIAL_PETS];
+
+    const localShop = this.loadLocal(STORAGE_KEY_SHOP);
+    this.shopItems = localShop.length > 0 ? localShop : [...PET_SHOP_ITEMS];
 
     // Tự động kéo dữ liệu thật từ Supabase Database khi khởi động
     this.initDatabaseData();
@@ -390,6 +406,319 @@ class DataManager {
       pets: this.pets,
       shopItems: this.shopItems
     };
+  }
+
+  // 1-Click: Nạp toàn bộ kho dữ liệu mẫu khổng lồ vào Local và Supabase Database
+  async seedFullDatabase() {
+    this.words = [...LANGUAGE_LEVELS];
+    this.mathLevels = [...MATH_LEVELS];
+    this.logicLevels = [...LOGIC_LEVELS];
+    this.pets = [...INITIAL_PETS];
+    this.shopItems = [...PET_SHOP_ITEMS];
+
+    this.saveWords(this.words);
+    this.saveMathLevels(this.mathLevels);
+    this.saveLogicLevels(this.logicLevels);
+    this.savePets(this.pets);
+    this.saveShopItems(this.shopItems);
+
+    // Đồng bộ lên Supabase Database trong nền
+    try {
+      for (const w of this.words) {
+        await supabaseService.insertVocabulary(w).catch(() => {});
+      }
+      for (const m of this.mathLevels) {
+        await supabaseService.insertMath(m).catch(() => {});
+      }
+      for (const l of this.logicLevels) {
+        await supabaseService.insertLogic(l).catch(() => {});
+      }
+      for (const p of this.pets) {
+        await supabaseService.insertPet(p).catch(() => {});
+      }
+      for (const s of this.shopItems) {
+        await supabaseService.insertShop(s).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Seed database background sync error:', err);
+    }
+
+    return {
+      wordsCount: this.words.length,
+      mathCount: this.mathLevels.length,
+      logicCount: this.logicLevels.length,
+      petsCount: this.pets.length,
+      shopCount: this.shopItems.length
+    };
+  }
+
+  // Thêm hàng loạt từ vựng
+  async batchAddWords(items) {
+    if (!Array.isArray(items) || items.length === 0) return 0;
+    const formattedList = items.map((item, index) => {
+      let finalEmoji = item.emoji ? item.emoji.trim() : '';
+      if (!finalEmoji || finalEmoji === '⭐') {
+        finalEmoji = autoDetectEmoji(item.vn, item.en);
+      }
+      return {
+        id: Date.now() + index + Math.random(),
+        vn: item.vn.trim(),
+        en: (item.en || item.vn).trim(),
+        emoji: finalEmoji,
+        theme: item.theme?.trim() || 'Tổng hợp',
+        targetVN: item.vn.trim().toUpperCase(),
+        targetEN: (item.en || item.vn).trim().toUpperCase(),
+        hintVN: item.hintVN || `Đây là "${item.vn}"`,
+        hintEN: item.hintEN || `This is "${item.en || item.vn}"`
+      };
+    });
+
+    this.words = [...this.words, ...formattedList];
+    this.saveWords(this.words);
+
+    // Sync to Supabase in background
+    for (const w of formattedList) {
+      supabaseService.insertVocabulary(w).catch(() => {});
+    }
+
+    return formattedList.length;
+  }
+
+  // Phân tích văn bản dán tự do thành danh sách từ vựng song ngữ + emoji
+  parseQuickTextWords(rawText) {
+    if (!rawText || typeof rawText !== 'string') return [];
+    
+    // Tách theo dấu phẩy, chấm phẩy hoặc xuống dòng
+    const lines = rawText
+      .split(/[\n,;]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    const dictionaryMap = {
+      'sư tử': { en: 'Lion', emoji: '🦁', theme: 'Động vật' },
+      'hổ': { en: 'Tiger', emoji: '🐯', theme: 'Động vật' },
+      'báo': { en: 'Leopard', emoji: '🐆', theme: 'Động vật' },
+      'voi': { en: 'Elephant', emoji: '🐘', theme: 'Động vật' },
+      'khỉ': { en: 'Monkey', emoji: '🐒', theme: 'Động vật' },
+      'gấu': { en: 'Bear', emoji: '🐻', theme: 'Động vật' },
+      'gấu trúc': { en: 'Panda', emoji: '🐼', theme: 'Động vật' },
+      'gấu bắc cực': { en: 'Polar Bear', emoji: '🐻‍❄️', theme: 'Động vật' },
+      'hươu': { en: 'Deer', emoji: '🦌', theme: 'Động vật' },
+      'hươu cao cổ': { en: 'Giraffe', emoji: '🦒', theme: 'Động vật' },
+      'ngựa vằn': { en: 'Zebra', emoji: '🦓', theme: 'Động vật' },
+      'lạc đà': { en: 'Camel', emoji: '🐪', theme: 'Động vật' },
+      'cá sấu': { en: 'Crocodile', emoji: '🐊', theme: 'Động vật' },
+      'hà mã': { en: 'Hippo', emoji: '🦛', theme: 'Động vật' },
+      'tê giác': { en: 'Rhino', emoji: '🦏', theme: 'Động vật' },
+      'sóc': { en: 'Squirrel', emoji: '🐿️', theme: 'Động vật' },
+      'cáo': { en: 'Fox', emoji: '🦊', theme: 'Động vật' },
+      'sói': { en: 'Wolf', emoji: '🐺', theme: 'Động vật' },
+      'cá voi': { en: 'Whale', emoji: '🐳', theme: 'Động vật' },
+      'cá mập': { en: 'Shark', emoji: '🦈', theme: 'Động vật' },
+      'bạch tuộc': { en: 'Octopus', emoji: '🐙', theme: 'Động vật' },
+      'sao biển': { en: 'Starfish', emoji: '⭐', theme: 'Động vật' },
+      'con cua': { en: 'Crab', emoji: '🦀', theme: 'Động vật' },
+      'tôm': { en: 'Shrimp', emoji: '🦐', theme: 'Động vật' },
+      'mực': { en: 'Squid', emoji: '🦑', theme: 'Động vật' },
+      'chim ưng': { en: 'Falcon', emoji: '🦅', theme: 'Động vật' },
+      'cú mèo': { en: 'Owl', emoji: '🦉', theme: 'Động vật' },
+      'chim bồ câu': { en: 'Dove', emoji: '🕊️', theme: 'Động vật' },
+      'chim vẹt': { en: 'Parrot', emoji: '🦜', theme: 'Động vật' },
+      'dưa lưới': { en: 'Melon', emoji: '🍈', theme: 'Trái cây' },
+      'quả lê': { en: 'Pear', emoji: '🍐', theme: 'Trái cây' },
+      'quả đào': { en: 'Peach', emoji: '🍑', theme: 'Trái cây' },
+      'quả cherry': { en: 'Cherry', emoji: '🍒', theme: 'Trái cây' },
+      'chanh': { en: 'Lemon', emoji: '🍋', theme: 'Trái cây' },
+      'dứa': { en: 'Pineapple', emoji: '🍍', theme: 'Trái cây' },
+      'súp lơ': { en: 'Broccoli', emoji: '🥦', theme: 'Rau củ' },
+      'hành tây': { en: 'Onion', emoji: '🧅', theme: 'Rau củ' },
+      'khoai tây': { en: 'Potato', emoji: '🥔', theme: 'Rau củ' },
+      'xe máy': { en: 'Motorcycle', emoji: '🛵', theme: 'Phương tiện' },
+      'trực thăng': { en: 'Helicopter', emoji: '🚁', theme: 'Phương tiện' },
+      'thuyền buồm': { en: 'Sailboat', emoji: '⛵', theme: 'Phương tiện' },
+      'xe cứu hỏa': { en: 'Fire Truck', emoji: '🚒', theme: 'Phương tiện' },
+      'xe cảnh sát': { en: 'Police Car', emoji: '🚓', theme: 'Phương tiện' },
+      'xe cấp cứu': { en: 'Ambulance', emoji: '🚑', theme: 'Phương tiện' },
+      'khinh khí cầu': { en: 'Hot Air Balloon', emoji: '🎈', theme: 'Phương tiện' }
+    };
+
+    return lines.map(raw => {
+      // Cho phép cú pháp: "Từ VN: Từ EN" hoặc chỉ "Từ VN"
+      let vnPart = raw;
+      let enPart = '';
+
+      if (raw.includes(':') || raw.includes('-')) {
+        const parts = raw.split(/[:\-]+/);
+        vnPart = parts[0].trim();
+        enPart = parts[1].trim();
+      }
+
+      const lower = vnPart.toLowerCase();
+      const matched = dictionaryMap[lower];
+
+      const enFinal = enPart || matched?.en || vnPart;
+      const emojiFinal = matched?.emoji || autoDetectEmoji(vnPart, enFinal);
+      const themeFinal = matched?.theme || 'Khám phá';
+
+      return {
+        vn: vnPart,
+        en: enFinal,
+        emoji: emojiFinal,
+        theme: themeFinal,
+        hintVN: `Bé nhận ra đây là "${vnPart}" không?`,
+        hintEN: `Can you guess the "${enFinal}"?`
+      };
+    });
+  }
+
+  // Tự động sinh hàng loạt bài tập toán học
+  generateSmartMathLevels(count = 5, category = 'all') {
+    const items = [
+      { emoji: '🍓', name: 'dâu tây' },
+      { emoji: '🍎', name: 'quả táo' },
+      { emoji: '🍌', name: 'quả chuối' },
+      { emoji: '🍊', name: 'quả cam' },
+      { emoji: '🐝', name: 'chú ong' },
+      { emoji: '🥕', name: 'củ cà rốt' },
+      { emoji: '🍬', name: 'viên kẹo' },
+      { emoji: '🍄', name: 'cây nấm' },
+      { emoji: '⭐', name: 'ngôi sao' },
+      { emoji: '🐟', name: 'chú cá' },
+      { emoji: '🦆', name: 'chú vịt' }
+    ];
+
+    const types = category === 'all' 
+      ? ['count', 'addition', 'compare'] 
+      : [category];
+
+    const newLevels = [];
+
+    for (let i = 0; i < count; i++) {
+      const selectedType = types[Math.floor(Math.random() * types.length)];
+      const item = items[Math.floor(Math.random() * items.length)];
+      const id = Date.now() + i + Math.floor(Math.random() * 1000);
+
+      if (selectedType === 'count') {
+        const target = Math.floor(Math.random() * 8) + 2; // 2 to 9
+        const opts = shuffleArray([
+          target,
+          Math.max(1, target - 1),
+          target + 1,
+          target + 2
+        ]);
+
+        newLevels.push({
+          id,
+          type: 'count',
+          title: `Đếm ${item.name}`,
+          promptVN: `Bé hãy chạm vào từng ${item.name} để đếm nhé!`,
+          promptEN: `Count each ${item.name}!`,
+          itemEmoji: item.emoji,
+          targetCount: target,
+          options: opts,
+          answer: target
+        });
+      } else if (selectedType === 'addition') {
+        const a = Math.floor(Math.random() * 4) + 1; // 1 to 4
+        const b = Math.floor(Math.random() * 5) + 1; // 1 to 5
+        const ans = a + b;
+        const opts = shuffleArray([
+          ans,
+          Math.max(1, ans - 1),
+          ans + 1
+        ]);
+
+        newLevels.push({
+          id,
+          type: 'addition',
+          title: `Cộng ${item.name}`,
+          promptVN: `${a} ${item.name} thêm ${b} ${item.name} là mấy?`,
+          promptEN: `${a} plus ${b} equals how many?`,
+          num1: a,
+          num2: b,
+          itemEmoji: item.emoji,
+          options: opts,
+          answer: ans
+        });
+      } else {
+        // Compare
+        const a = Math.floor(Math.random() * 7) + 2;
+        let b = Math.floor(Math.random() * 7) + 2;
+        if (a === b) b = a + 1;
+
+        const isLeftMore = a > b;
+        const answer = isLeftMore ? `Bên Trái (${a})` : `Bên Phải (${b})`;
+
+        newLevels.push({
+          id,
+          type: 'compare',
+          title: `So Sánh ${item.name}`,
+          promptVN: `Bên nào có NHIỀU ${item.name} hơn?`,
+          promptEN: `Which side has MORE?`,
+          sideA: { count: a, emoji: item.emoji },
+          sideB: { count: b, emoji: item.emoji },
+          options: [`Bên Trái (${a})`, `Bên Phải (${b})`],
+          answer
+        });
+      }
+    }
+
+    this.mathLevels = [...this.mathLevels, ...newLevels];
+    this.saveMathLevels(this.mathLevels);
+
+    // Sync to Supabase in background
+    for (const m of newLevels) {
+      supabaseService.insertMath(m).catch(() => {});
+    }
+
+    return newLevels.length;
+  }
+
+  // Tự động sinh hàng loạt câu đố Logic
+  generateSmartLogicLevels(count = 5) {
+    const emojiPairs = [
+      ['🔴', '🟡', 'Đỏ - Vàng'],
+      ['🍎', '🍏', 'Táo đỏ - Táo xanh'],
+      ['🐶', '🐱', 'Cún - Miu'],
+      ['🚗', '✈️', 'Ô tô - Máy bay'],
+      ['⭐', '💖', 'Sao - Tim'],
+      ['☀️', '🌙', 'Ngày - Đêm'],
+      ['🌸', '🍀', 'Hoa - Cỏ']
+    ];
+
+    const newLevels = [];
+
+    for (let i = 0; i < count; i++) {
+      const pair = emojiPairs[Math.floor(Math.random() * emojiPairs.length)];
+      const id = Date.now() + i + Math.floor(Math.random() * 1000);
+      const e1 = pair[0];
+      const e2 = pair[1];
+
+      // Pattern: e1, e2, e1, e2, e1 -> answer: e2
+      const opts = shuffleArray([e2, e1, '⭐', '🌈']);
+
+      newLevels.push({
+        id,
+        type: 'pattern',
+        title: `Quy Luật ${pair[2]}`,
+        promptVN: `Hình tiếp theo trong chuỗi là hình gì bé ơi?`,
+        promptEN: `What comes next in the sequence?`,
+        sequence: [e1, e2, e1, e2, e1],
+        options: opts,
+        answer: e2,
+        hint: `Quy luật lặp lại nhịp nhàng giữa ${e1} và ${e2}...`
+      });
+    }
+
+    this.logicLevels = [...this.logicLevels, ...newLevels];
+    this.saveLogicLevels(this.logicLevels);
+
+    // Sync to Supabase in background
+    for (const l of newLevels) {
+      supabaseService.insertLogic(l).catch(() => {});
+    }
+
+    return newLevels.length;
   }
 }
 
