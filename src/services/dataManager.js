@@ -179,6 +179,7 @@ class DataManager {
 
     let addedCount = 0;
     const next = [...this.words];
+    const itemsToInsert = [];
 
     for (const row of rawRows) {
       const vn = row['TiengViet'] || row['Tiếng Việt'] || row['vn'] || row['VN'] || row['Vietnamese'];
@@ -203,6 +204,7 @@ class DataManager {
 
         if (!exists) {
           const item = {
+            id: Date.now() + Math.random(),
             vn: cleanVN,
             en: cleanEN,
             emoji: finalEmoji,
@@ -213,17 +215,18 @@ class DataManager {
             hintEN: hint ? String(hint).trim() : `This is "${cleanEN}"`
           };
 
-          // Gửi INSERT vào Database Supabase
-          const dbCreated = await supabaseService.insertVocabulary(item);
-          item.id = dbCreated?.id || (Date.now() + Math.random());
-
+          itemsToInsert.push(item);
           next.push(item);
           addedCount++;
         }
       }
     }
 
-    if (addedCount > 0) {
+    if (itemsToInsert.length > 0) {
+      // GOM TOÀN BỘ VÀO 1 REQUEST DUY NHẤT (BULK INSERT)
+      supabaseService.insertVocabularyBatch(itemsToInsert).catch((err) => {
+        console.warn('Batch insert vocabulary warning:', err);
+      });
       this.saveWords(next);
     }
     return addedCount;
@@ -422,23 +425,15 @@ class DataManager {
     this.savePets(this.pets);
     this.saveShopItems(this.shopItems);
 
-    // Đồng bộ lên Supabase Database trong nền
+    // Đồng bộ lên Supabase Database trong nền bằng Bulk Insert (chỉ 5 request song song cho 5 bảng thay vì hơn 100 request)
     try {
-      for (const w of this.words) {
-        await supabaseService.insertVocabulary(w).catch(() => {});
-      }
-      for (const m of this.mathLevels) {
-        await supabaseService.insertMath(m).catch(() => {});
-      }
-      for (const l of this.logicLevels) {
-        await supabaseService.insertLogic(l).catch(() => {});
-      }
-      for (const p of this.pets) {
-        await supabaseService.insertPet(p).catch(() => {});
-      }
-      for (const s of this.shopItems) {
-        await supabaseService.insertShop(s).catch(() => {});
-      }
+      await Promise.all([
+        supabaseService.insertVocabularyBatch(this.words),
+        supabaseService.insertMathBatch(this.mathLevels),
+        supabaseService.insertLogicBatch(this.logicLevels),
+        supabaseService.insertPetsBatch(this.pets),
+        supabaseService.insertShopBatch(this.shopItems)
+      ]);
     } catch (err) {
       console.warn('Seed database background sync error:', err);
     }
@@ -476,10 +471,10 @@ class DataManager {
     this.words = [...this.words, ...formattedList];
     this.saveWords(this.words);
 
-    // Sync to Supabase in background
-    for (const w of formattedList) {
-      supabaseService.insertVocabulary(w).catch(() => {});
-    }
+    // GOM TOÀN BỘ VÀO 1 REQUEST DUY NHẤT (BULK INSERT)
+    supabaseService.insertVocabularyBatch(formattedList).catch((err) => {
+      console.warn('Batch insert vocabulary warning:', err);
+    });
 
     return formattedList.length;
   }
@@ -666,10 +661,10 @@ class DataManager {
     this.mathLevels = [...this.mathLevels, ...newLevels];
     this.saveMathLevels(this.mathLevels);
 
-    // Sync to Supabase in background
-    for (const m of newLevels) {
-      supabaseService.insertMath(m).catch(() => {});
-    }
+    // GOM TOÀN BỘ CÂU HỎI TOÁN VÀO 1 REQUEST DUY NHẤT (BULK INSERT)
+    supabaseService.insertMathBatch(newLevels).catch((err) => {
+      console.warn('Batch insert math warning:', err);
+    });
 
     return newLevels.length;
   }
@@ -713,10 +708,10 @@ class DataManager {
     this.logicLevels = [...this.logicLevels, ...newLevels];
     this.saveLogicLevels(this.logicLevels);
 
-    // Sync to Supabase in background
-    for (const l of newLevels) {
-      supabaseService.insertLogic(l).catch(() => {});
-    }
+    // GOM TOÀN BỘ CÂU ĐỐ LOGIC VÀO 1 REQUEST DUY NHẤT (BULK INSERT)
+    supabaseService.insertLogicBatch(newLevels).catch((err) => {
+      console.warn('Batch insert logic warning:', err);
+    });
 
     return newLevels.length;
   }
