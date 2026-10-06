@@ -156,12 +156,9 @@ export default function AdminDashboard({
 
   // ⚡ 1-Click Master Data Seeder (100+ items)
   const handleSeedDatabaseFull = async () => {
-    if (!window.confirm('⚡ Bạn có chắc chắn muốn nạp TOÀN BỘ 100+ dữ liệu mẫu khổng lồ (50 từ vựng phong phú, 20 bài toán, 15 câu đố logic, 6 thú cưng, 12 vật phẩm shop)? Thao tác này sẽ đồng bộ vào Database và bộ nhớ máy ngay tức thì!')) {
-      return;
-    }
     sounds.playClick();
     setIsBatchGenerating(true);
-    notify('Đang nạp 100+ dữ liệu vào hệ thống và Database...');
+    notify('⏳ Đang nạp kho 100+ dữ liệu mẫu vào hệ thống và Database...');
     try {
       const counts = await dataManager.seedFullDatabase();
       setWords([...dataManager.getWords()]);
@@ -170,8 +167,8 @@ export default function AdminDashboard({
       setPets([...dataManager.getPets()]);
       setShopItems([...dataManager.getShopItems()]);
       sounds.playSuccess();
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      notify(`🎉 Đã nạp thành công 100+ dữ liệu: ${counts.wordsCount} từ vựng, ${counts.mathCount} toán, ${counts.logicCount} logic, ${counts.petsCount} thú cưng! 🚀`);
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      notify(`🎉 Đã nạp thành công ${counts.wordsCount + counts.mathCount + counts.logicCount + counts.petsCount + counts.shopCount} dữ liệu mẫu: ${counts.wordsCount} từ vựng, ${counts.mathCount} toán, ${counts.logicCount} logic, ${counts.petsCount} thú cưng, ${counts.shopCount} vật phẩm! 🚀`);
       if (onDataChanged) onDataChanged();
     } catch (err) {
       sounds.playError();
@@ -811,8 +808,17 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
             }}
             title="Nạp tức thì 100+ câu hỏi và bài học mẫu chất lượng cao (50 từ vựng, 20 toán, 15 logic) vào database"
           >
-            <Zap size={14} />
-            <span>⚡ Nạp 100+ Dữ Liệu Khủng</span>
+            {isBatchGenerating ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                <span>Đang Nạp Dữ Liệu...</span>
+              </>
+            ) : (
+              <>
+                <Zap size={14} />
+                <span>⚡ Nạp 100+ Dữ Liệu Khủng</span>
+              </>
+            )}
           </button>
 
           {/* SIÊU TRÌNH TẠO TỰ ĐỘNG (SMART BATCH GENERATOR) */}
