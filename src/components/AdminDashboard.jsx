@@ -804,62 +804,64 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
-        marginBottom: '20px', 
+        marginBottom: '16px', 
         flexWrap: 'wrap', 
-        gap: '14px',
+        gap: '12px',
         background: '#ffffff',
-        padding: '16px 20px',
-        borderRadius: '24px',
+        padding: '12px 16px',
+        borderRadius: '20px',
         border: '3px solid #e2e8f0',
         boxShadow: '0 4px 14px rgba(0,0,0,0.04)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '8px 18px', fontSize: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
+          <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '7px 14px', fontSize: '13px', flexShrink: 0 }}>
             <ArrowLeft size={16} />
             <span>Quay Lại Game</span>
           </button>
-          <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-              🛡️ Cổng Quản Trị Hệ Thống (Kids Edu Admin)
+          <div style={{ flex: 1, minWidth: '160px' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(15px, 3.2vw, 19px)', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+              🛡️ Cổng Quản Trị Hệ Thống
             </h2>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
+            <div className="hide-on-mobile" style={{ fontSize: '12px', color: '#64748b' }}>
               Quản lý toàn bộ câu hỏi, toán học, tư duy, thú cưng trực tiếp trên Supabase Database
             </div>
           </div>
         </div>
 
-        {/* Global Action Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Global Action Toolbar - Clean Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '6px', width: '100%' }}>
           {/* NẠP 100+ DỮ LIỆU KHỦNG (1-CLICK MASTER SEED) */}
           <button 
             onClick={handleSeedDatabaseFull} 
             disabled={isBatchGenerating}
             style={{ 
-              padding: '8px 16px', 
-              fontSize: '12px',
+              padding: '7px 12px', 
+              fontSize: '11px',
               fontWeight: 800,
               background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
+              borderRadius: '12px',
+              boxShadow: '0 3px 8px rgba(245, 158, 11, 0.3)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              justifyContent: 'center',
+              gap: '4px',
               cursor: isBatchGenerating ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
             }}
             title="Nạp tức thì 100+ câu hỏi và bài học mẫu chất lượng cao (50 từ vựng, 20 toán, 15 logic) vào database"
           >
             {isBatchGenerating ? (
               <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Đang Nạp Dữ Liệu...</span>
+                <RefreshCw size={13} className="animate-spin" />
+                <span>Đang Nạp...</span>
               </>
             ) : (
               <>
-                <Zap size={14} />
-                <span>⚡ Nạp 100+ Dữ Liệu Khủng</span>
+                <Zap size={13} />
+                <span>⚡ Nạp 100+ Dữ Liệu</span>
               </>
             )}
           </button>
@@ -868,34 +870,36 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={() => { sounds.playClick(); setIsGeneratorOpen(true); }}
             style={{ 
-              padding: '8px 16px', 
-              fontSize: '12px',
+              padding: '7px 12px', 
+              fontSize: '11px',
               fontWeight: 800,
               background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)',
+              borderRadius: '12px',
+              boxShadow: '0 3px 8px rgba(99, 102, 241, 0.3)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              justifyContent: 'center',
+              gap: '4px',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
             }}
             title="Dán chữ tự nhận dạng emoji & dịch tiếng Anh, hoặc tự sinh hàng loạt bài tập toán/logic"
           >
-            <Wand2 size={14} />
-            <span>🤖 Tạo Hàng Loạt Tự Động</span>
+            <Wand2 size={13} />
+            <span>🤖 Tạo Hàng Loạt</span>
           </button>
 
           <button 
             onClick={handleSyncDatabase} 
             className="btn-kid btn-green" 
-            style={{ padding: '8px 14px', fontSize: '12px' }}
+            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Đồng bộ kéo dữ liệu mới nhất từ Supabase Database về"
           >
-            <RefreshCw size={14} />
-            <span>Tải Từ Database</span>
+            <RefreshCw size={13} />
+            <span>Tải Database</span>
           </button>
 
           <input
@@ -909,30 +913,30 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={handleBackupExport} 
             className="btn-kid btn-purple" 
-            style={{ padding: '8px 14px', fontSize: '12px' }}
+            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Tải về file JSON sao lưu toàn bộ dữ liệu game"
           >
-            <Download size={14} />
-            <span>Sao Lưu (JSON)</span>
+            <Download size={13} />
+            <span>Sao Lưu</span>
           </button>
 
           <button 
             onClick={() => backupInputRef.current?.click()} 
             className="btn-kid btn-blue" 
-            style={{ padding: '8px 14px', fontSize: '12px' }}
+            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Khôi phục toàn bộ câu hỏi và dữ liệu từ file JSON"
           >
-            <Upload size={14} />
-            <span>Khôi Phục (JSON)</span>
+            <Upload size={13} />
+            <span>Khôi Phục</span>
           </button>
 
           <button 
             onClick={handleResetAll} 
             className="btn-kid btn-yellow" 
-            style={{ padding: '8px 14px', fontSize: '12px' }}
+            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Khôi phục toàn bộ dữ liệu về mặc định"
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={13} />
             <span>Reset Toàn Bộ</span>
           </button>
         </div>
@@ -947,7 +951,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           padding: '12px 20px',
           borderRadius: '16px',
           fontWeight: 700,
-          marginBottom: '20px',
+          marginBottom: '16px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px'
@@ -957,13 +961,18 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
         </div>
       )}
 
-      {/* Navigation Tabs Bar */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '10px',
-        marginBottom: '24px'
-      }}>
+      {/* Navigation Tabs Bar - Smooth Horizontal Scroll On Mobile */}
+      <div 
+        style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '20px',
+          overflowX: 'auto',
+          paddingBottom: '4px',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none'
+        }}
+      >
         {[
           { id: 'overview', label: 'Tổng Quan & Biểu Đồ', icon: LayoutDashboard, badge: null, color: '#3b82f6' },
           { id: 'language', label: 'Bảng Từ Vựng', icon: BookOpen, badge: words.length, color: '#10b981' },
@@ -983,32 +992,33 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                 setActiveTab(tab.id);
               }}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '16px',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '14px',
                 border: isActive ? `2px solid ${tab.color}` : '2px solid #e2e8f0',
                 background: isActive ? '#ffffff' : '#f8fafc',
                 color: isActive ? tab.color : '#475569',
                 fontWeight: 800,
-                fontSize: '14px',
+                fontSize: '13px',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                flexShrink: 0,
                 transition: 'all 0.2s ease',
-                boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.06)' : 'none'
+                boxShadow: isActive ? '0 4px 10px rgba(0,0,0,0.06)' : 'none'
               }}
             >
-              <Icon size={16} />
+              <Icon size={15} />
               <span>{tab.label}</span>
               {tab.badge !== null && (
                 <span style={{
                   fontSize: '11px',
                   background: isActive ? tab.color : '#e2e8f0',
                   color: isActive ? '#ffffff' : '#64748b',
-                  padding: '2px 8px',
+                  padding: '1px 6px',
                   borderRadius: '999px',
-                  fontWeight: 900
+                  fontWeight: 800
                 }}>
                   {tab.badge}
                 </span>

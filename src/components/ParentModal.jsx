@@ -56,31 +56,36 @@ export default function ParentModal({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(15, 23, 42, 0.65)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: 'clamp(8px, 2.5vw, 16px)'
-    }}>
+    <div 
+      className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '16px'
+      }}
+    >
       <div 
-        className="kid-card animate-pop-in"
+        className="kid-card animate-pop-in modal-sheet"
         style={{
           width: '100%',
           maxWidth: '640px',
           background: '#ffffff',
-          borderRadius: 'clamp(18px, 4vw, 28px)',
+          borderRadius: 'clamp(20px, 4vw, 28px)',
           padding: 0,
           position: 'relative',
-          maxHeight: '92vh',
+          maxHeight: 'calc(100dvh - 32px)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          boxSizing: 'border-box'
         }}
       >
         {/* ================= FIXED HEADER ================= */}

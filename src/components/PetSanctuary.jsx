@@ -107,22 +107,31 @@ export default function PetSanctuary({
   return (
     <div className="page-container" style={{ maxWidth: '850px' }}>
       {/* Top Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-        <button onClick={onBack} className="btn-kid btn-yellow" style={{ padding: '8px 14px', fontSize: '13px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', gap: '8px' }}>
+        <button onClick={onBack} className="btn-kid btn-yellow" style={{ padding: '7px 12px', fontSize: '13px', flexShrink: 0 }}>
           <ArrowLeft size={16} />
           <span>Bản đồ</span>
         </button>
 
-        <div style={{ background: '#fef3c7', color: '#b45309', padding: '5px 16px', borderRadius: '999px', fontWeight: 800, fontSize: '14px', border: '2px solid #fde68a' }}>
+        <div style={{ background: '#fef3c7', color: '#b45309', padding: '5px 14px', borderRadius: '999px', fontWeight: 800, fontSize: '13px', border: '1.5px solid #fde68a' }}>
           🪙 Xu của bé: <strong>{coins}</strong>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         {/* Left: Pet Display Stage */}
-        <div className="kid-card" style={{ padding: 'clamp(20px, 4vw, 32px)', textAlign: 'center', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Pet Switcher */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 28px)', textAlign: 'center', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Pet Switcher - Smooth Horizontal Scroll */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '14px',
+            overflowX: 'auto',
+            maxWidth: '100%',
+            padding: '4px 2px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none'
+          }}>
             {pets.map((p) => (
               <button
                 key={p.id}
@@ -133,8 +142,9 @@ export default function PetSanctuary({
                 }}
                 className={`btn-kid ${selectedPet.id === p.id ? 'btn-yellow' : 'btn-gray'}`}
                 style={{
-                  padding: '6px 14px',
-                  fontSize: '20px'
+                  padding: '6px 12px',
+                  fontSize: '20px',
+                  flexShrink: 0
                 }}
               >
                 {p.emoji}

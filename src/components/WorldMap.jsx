@@ -352,6 +352,89 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
           </div>
         ))}
       </div>
+
+      {/* Mobile Interactive Daily Quests & Quick Play Hub (< 641px) */}
+      <div 
+        className="kid-card show-on-mobile"
+        style={{
+          marginTop: '12px',
+          padding: '12px 14px',
+          background: 'linear-gradient(135deg, #ffffff 0%, #fefce8 100%)',
+          border: '2.5px solid #fef08a'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '18px' }}>🎯</span>
+            <span style={{ fontSize: '13px', fontWeight: 900, color: '#854d0e' }}>Nhiệm Vụ Rèn Luyện Hôm Nay</span>
+          </div>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#ca8a04', background: '#fef3c7', padding: '2px 8px', borderRadius: '999px' }}>
+            +30 Xu 🪙
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div 
+            onClick={() => handleSelect('language')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 10px',
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1.5px solid #fbcfe8',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>📚</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Thung Lũng Ngôn Ngữ: Học từ vựng & ghép chữ</span>
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#ec4899', flexShrink: 0 }}>Vào ➔</span>
+          </div>
+
+          <div 
+            onClick={() => handleSelect('math')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 10px',
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1.5px solid #bbf7d0',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>🔢</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Nông Trại Số Học: Đếm số & tính nhẩm</span>
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16a34a', flexShrink: 0 }}>Vào ➔</span>
+          </div>
+
+          <div 
+            onClick={() => handleSelect('logic')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 10px',
+              background: '#ffffff',
+              borderRadius: '12px',
+              border: '1.5px solid #ddd6fe',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>🧩</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Tháp Bí Ẩn Logic: Thử tài tìm quy luật</span>
+            </div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#8b5cf6', flexShrink: 0 }}>Vào ➔</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

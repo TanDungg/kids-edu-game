@@ -275,13 +275,13 @@ export default function App() {
     <div
       style={{ minHeight: "100vh", position: "relative", overflowX: "hidden" }}
     >
-      {/* Decorative Whimsical Floating Clouds */}
+      {/* Decorative Whimsical Floating Clouds (Hidden on mobile) */}
       <div
-        className="cloud-bg animate-float"
+        className="cloud-bg animate-float hide-on-mobile"
         style={{ top: "80px", left: "5%", width: "140px", height: "45px" }}
       />
       <div
-        className="cloud-bg animate-float"
+        className="cloud-bg animate-float hide-on-mobile"
         style={{
           top: "160px",
           right: "8%",
@@ -291,7 +291,7 @@ export default function App() {
         }}
       />
       <div
-        className="cloud-bg animate-float"
+        className="cloud-bg animate-float hide-on-mobile"
         style={{
           top: "450px",
           left: "8%",

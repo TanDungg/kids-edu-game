@@ -171,42 +171,29 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
 
   return (
     <div className="page-container" style={{ maxWidth: '800px' }}>
-      {/* Top Bar - Responsive Flex Wrap */}
+      {/* Top Bar - Clean Responsive Single-Line Controls */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '10px',
-        marginBottom: '16px'
+        gap: '6px',
+        marginBottom: '14px'
       }}>
-        <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '8px 14px', fontSize: '13px' }}>
+        <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '7px 12px', fontSize: '13px', flexShrink: 0 }}>
           <ArrowLeft size={16} />
           <span>Bản đồ</span>
         </button>
-
-        <div style={{
-          background: '#fdf2f8',
-          color: '#db2777',
-          padding: '5px 12px',
-          borderRadius: '999px',
-          fontWeight: 800,
-          fontSize: '12px',
-          border: '2px solid #fbcfe8'
-        }}>
-          Từ {levelIndex + 1} / {wordsList.length} (Đã xáo trộn 🎲)
-        </div>
 
         {/* Language Switcher Segmented Control */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           background: '#ffffff',
-          padding: '3px',
+          padding: '2px',
           borderRadius: '999px',
           border: '2px solid #e2e8f0',
           boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-          height: '38px',
+          height: '36px',
           boxSizing: 'border-box'
         }}>
           <button
@@ -215,12 +202,12 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '5px 12px',
+              padding: '4px 10px',
               borderRadius: '999px',
               fontSize: '12px',
               fontWeight: 800,
               fontFamily: 'inherit',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 0.2s ease',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
@@ -230,7 +217,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
               outline: 'none'
             }}
           >
-            <span>🇻🇳</span> Tiếng Việt
+            <span>🇻🇳</span> <span className="hide-on-mobile">Tiếng </span>Việt
           </button>
           <button
             type="button"
@@ -238,12 +225,12 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '5px 12px',
+              padding: '4px 10px',
               borderRadius: '999px',
               fontSize: '12px',
               fontWeight: 800,
               fontFamily: 'inherit',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 0.2s ease',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
@@ -257,50 +244,86 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           </button>
         </div>
 
-        <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }} title="Xáo trộn lại câu hỏi">
-          <RefreshCw size={16} />
-        </button>
+        {/* Progress Pill & Reshuffle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+          <div style={{
+            background: '#fdf2f8',
+            color: '#db2777',
+            padding: '5px 9px',
+            borderRadius: '999px',
+            fontWeight: 800,
+            fontSize: '11px',
+            border: '1.5px solid #fbcfe8',
+            whiteSpace: 'nowrap'
+          }}>
+            {levelIndex + 1}/{wordsList.length}
+          </div>
+          <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '7px 10px' }} title="Xáo trộn lại câu hỏi">
+            <RefreshCw size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Main Flashcard */}
-      <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 32px)', textAlign: 'center', background: '#ffffff', position: 'relative' }}>
+      <div className="kid-card" style={{ padding: 'clamp(14px, 3.5vw, 28px)', textAlign: 'center', background: '#ffffff', position: 'relative' }}>
         {/* Mascot & Theme */}
-        <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '4px 14px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '12px', marginBottom: '8px' }}>
+        <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '4px 14px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '12px', marginBottom: '6px' }}>
           Chủ đề: {currentLevel.theme}
         </div>
 
-        <div style={{ fontSize: 'clamp(64px, 15vw, 96px)', margin: '4px 0' }} className="animate-bounce-slow">
+        <div style={{ fontSize: 'clamp(60px, 14vw, 92px)', margin: '2px 0' }} className="animate-bounce-slow">
           {currentLevel.emoji}
         </div>
 
         {/* Prompt */}
-        <p style={{ color: '#334155', fontSize: 'clamp(15px, 3.5vw, 18px)', fontWeight: 800, margin: '12px 0 20px' }}>
+        <p style={{ color: '#334155', fontSize: 'clamp(14px, 3.2vw, 17px)', fontWeight: 800, margin: '8px 0 16px' }}>
           {mode === 'VN' 
             ? 'Bé nhìn hình đoán xem đây là gì và ghép chữ nhé!' 
             : 'Look at the picture and tap the letters to spell!'}
         </p>
 
-        {/* Word Target Slots */}
+        {/* Word Target Slots - Always 1 Clean Centered Row */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'clamp(4px, 1.5vw, 10px)',
-          marginBottom: '24px',
-          flexWrap: 'wrap'
+          alignItems: 'center',
+          gap: 'clamp(3px, 1.2vw, 8px)',
+          marginBottom: '20px',
+          flexWrap: 'nowrap',
+          width: '100%',
+          overflowX: 'auto',
+          padding: '4px 2px',
+          boxSizing: 'border-box'
         }}>
           {Array.from({ length: targetWord.length }).map((_, idx) => {
             const filled = currentGuess[idx];
+            // Dynamic slot size so long words (like AIRPLANE, WATERMELON) fit 100% on one line on any screen
+            const slotWidth = Math.max(28, Math.min(52, Math.floor(320 / Math.max(targetWord.length, 5))));
+            const slotHeight = Math.round(slotWidth * 1.25);
+            const slotFont = Math.round(slotWidth * 0.55);
+            const slotRadius = Math.round(slotWidth * 0.25);
+
             return (
               <div
                 key={idx}
                 onClick={() => filled && handleRemoveLetter(idx)}
-                className="lang-slot"
                 style={{
-                  border: filled ? '3px solid #ec4899' : '2.5px dashed #cbd5e1',
+                  width: `${slotWidth}px`,
+                  height: `${slotHeight}px`,
+                  fontSize: `${slotFont}px`,
+                  borderRadius: `${slotRadius}px`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  border: filled ? '2.5px solid #ec4899' : '2px dashed #cbd5e1',
                   background: filled ? '#fdf2f8' : '#f8fafc',
                   color: '#be185d',
                   cursor: filled ? 'pointer' : 'default',
-                  boxShadow: filled ? '0 4px 0 #db2777' : 'none'
+                  boxShadow: filled ? '0 3px 0 #db2777' : 'none',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  userSelect: 'none'
                 }}
               >
                 {filled ? filled.char : ''}
@@ -313,16 +336,23 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'clamp(6px, 2vw, 12px)',
+          gap: 'clamp(6px, 1.8vw, 10px)',
           flexWrap: 'wrap',
-          minHeight: '52px'
+          maxWidth: '440px',
+          margin: '0 auto',
+          minHeight: '48px'
         }}>
           {scrambledLetters.map((item) => (
             <button
               key={item.id}
               onClick={() => handlePickLetter(item)}
-              className="btn-kid btn-yellow lang-btn"
+              className="btn-kid btn-yellow"
               style={{
+                width: 'clamp(38px, 9.2vw, 50px)',
+                height: 'clamp(42px, 10.5vw, 54px)',
+                fontSize: 'clamp(18px, 4.5vw, 24px)',
+                fontWeight: 900,
+                borderRadius: '12px',
                 padding: 0
               }}
             >

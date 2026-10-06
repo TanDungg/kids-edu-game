@@ -220,32 +220,34 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(15, 23, 42, 0.65)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    }}>
+    <div 
+      className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '16px'
+      }}
+    >
       <div 
-        className="kid-card animate-pop-in"
+        className="kid-card animate-pop-in modal-sheet"
         style={{
           background: '#ffffff',
-          borderRadius: 'clamp(18px, 4vw, 28px)',
+          borderRadius: 'clamp(20px, 4vw, 28px)',
           width: '100%',
           maxWidth: '460px',
           padding: 'clamp(20px, 4vw, 28px) clamp(16px, 4vw, 24px)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           position: 'relative',
-          maxHeight: '92vh',
-          overflowY: 'auto'
+          maxHeight: 'calc(100dvh - 32px)',
+          overflowY: 'auto',
+          boxSizing: 'border-box'
         }}
       >
         {/* Decorative Top Accent */}
