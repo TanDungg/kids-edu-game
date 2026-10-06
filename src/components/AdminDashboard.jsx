@@ -802,40 +802,53 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
       {/* Top Navbar */}
       <div style={{ 
         display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        marginBottom: '16px', 
-        flexWrap: 'wrap', 
+        flexDirection: 'column',
         gap: '12px',
+        marginBottom: '16px', 
         background: '#ffffff',
-        padding: '12px 16px',
+        padding: 'clamp(12px, 3vw, 16px)',
         borderRadius: '20px',
         border: '3px solid #e2e8f0',
         boxShadow: '0 4px 14px rgba(0,0,0,0.04)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
-          <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '7px 14px', fontSize: '13px', flexShrink: 0 }}>
-            <ArrowLeft size={16} />
+        {/* Row 1: Back Button & Supabase Status Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '6px 12px', fontSize: '12.5px' }}>
+            <ArrowLeft size={15} />
             <span>Quay Lại Game</span>
           </button>
-          <div style={{ flex: 1, minWidth: '160px' }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(15px, 3.2vw, 19px)', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-              🛡️ Cổng Quản Trị Hệ Thống
-            </h2>
-            <div className="hide-on-mobile" style={{ fontSize: '12px', color: '#64748b' }}>
-              Quản lý toàn bộ câu hỏi, toán học, tư duy, thú cưng trực tiếp trên Supabase Database
-            </div>
+          <span style={{ 
+            fontSize: '11px', 
+            fontWeight: 800, 
+            color: '#10b981', 
+            background: '#ecfdf5', 
+            padding: '3px 10px', 
+            borderRadius: '999px', 
+            border: '1.5px solid #a7f3d0',
+            whiteSpace: 'nowrap'
+          }}>
+            🟢 Supabase Online
+          </span>
+        </div>
+
+        {/* Row 2: Title & Subtitle */}
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#0f172a', margin: '0 0 2px', lineHeight: 1.2 }}>
+            🛡️ Cổng Quản Trị Hệ Thống
+          </h2>
+          <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+            Quản trị nội dung học tập và đồng bộ dữ liệu đám mây
           </div>
         </div>
 
-        {/* Global Action Toolbar - Clean Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '6px', width: '100%' }}>
+        {/* Global Action Toolbar - Clean Responsive Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px', width: '100%' }}>
           {/* NẠP 100+ DỮ LIỆU KHỦNG (1-CLICK MASTER SEED) */}
           <button 
             onClick={handleSeedDatabaseFull} 
             disabled={isBatchGenerating}
             style={{ 
-              padding: '7px 12px', 
+              padding: '7px 10px', 
               fontSize: '11px',
               fontWeight: 800,
               background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)',
@@ -851,7 +864,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap'
             }}
-            title="Nạp tức thì 100+ câu hỏi và bài học mẫu chất lượng cao (50 từ vựng, 20 toán, 15 logic) vào database"
+            title="Nạp tức thì 100+ câu hỏi và bài học mẫu chất lượng cao vào database"
           >
             {isBatchGenerating ? (
               <>
@@ -870,7 +883,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={() => { sounds.playClick(); setIsGeneratorOpen(true); }}
             style={{ 
-              padding: '7px 12px', 
+              padding: '7px 10px', 
               fontSize: '11px',
               fontWeight: 800,
               background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
@@ -895,7 +908,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={handleSyncDatabase} 
             className="btn-kid btn-green" 
-            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+            style={{ padding: '7px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Đồng bộ kéo dữ liệu mới nhất từ Supabase Database về"
           >
             <RefreshCw size={13} />
@@ -913,7 +926,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={handleBackupExport} 
             className="btn-kid btn-purple" 
-            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+            style={{ padding: '7px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Tải về file JSON sao lưu toàn bộ dữ liệu game"
           >
             <Download size={13} />
@@ -923,7 +936,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={() => backupInputRef.current?.click()} 
             className="btn-kid btn-blue" 
-            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+            style={{ padding: '7px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Khôi phục toàn bộ câu hỏi và dữ liệu từ file JSON"
           >
             <Upload size={13} />
@@ -933,7 +946,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           <button 
             onClick={handleResetAll} 
             className="btn-kid btn-yellow" 
-            style={{ padding: '7px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+            style={{ padding: '7px 10px', fontSize: '11px', whiteSpace: 'nowrap' }}
             title="Khôi phục toàn bộ dữ liệu về mặc định"
           >
             <RotateCcw size={13} />
@@ -1036,57 +1049,64 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
 
         return (
           <div className="animate-pop-in">
-            {/* 5 KPI Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-              <div className="kid-card" style={{ padding: '18px', background: '#ecfdf5', border: '2px solid #a7f3d0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#047857' }}>Từ Vựng</span>
-                  <BookOpen size={20} color="#059669" />
+            {/* 5 KPI Summary Cards (Clean 2x2 on mobile + Full Span 5th Card) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+              <div className="kid-card" style={{ padding: '14px', background: '#ecfdf5', border: '2px solid #a7f3d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#047857' }}>Từ Vựng</span>
+                  <BookOpen size={18} color="#059669" />
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#065f46' }}>{words.length}</div>
-                <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>game_vocabulary</div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#065f46' }}>{words.length}</div>
+                <div style={{ fontSize: '10.5px', color: '#059669', marginTop: '2px', fontFamily: 'monospace' }}>game_vocabulary</div>
               </div>
 
-              <div className="kid-card" style={{ padding: '18px', background: '#fffbeb', border: '2px solid #fde68a' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#b45309' }}>Toán Học</span>
-                  <Calculator size={20} color="#d97706" />
+              <div className="kid-card" style={{ padding: '14px', background: '#fffbeb', border: '2px solid #fde68a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#b45309' }}>Toán Học</span>
+                  <Calculator size={18} color="#d97706" />
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#92400e' }}>{mathLevels.length}</div>
-                <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px' }}>game_math</div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#92400e' }}>{mathLevels.length}</div>
+                <div style={{ fontSize: '10.5px', color: '#b45309', marginTop: '2px', fontFamily: 'monospace' }}>game_math</div>
               </div>
 
-              <div className="kid-card" style={{ padding: '18px', background: '#f5f3ff', border: '2px solid #ddd6fe' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#6d28d9' }}>Tư Duy Logic</span>
-                  <Brain size={20} color="#7c3aed" />
+              <div className="kid-card" style={{ padding: '14px', background: '#f5f3ff', border: '2px solid #ddd6fe' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#6d28d9' }}>Tư Duy Logic</span>
+                  <Brain size={18} color="#7c3aed" />
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#5b21b6' }}>{logicLevels.length}</div>
-                <div style={{ fontSize: '11px', color: '#6d28d9', marginTop: '4px' }}>game_logic</div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#5b21b6' }}>{logicLevels.length}</div>
+                <div style={{ fontSize: '10.5px', color: '#6d28d9', marginTop: '2px', fontFamily: 'monospace' }}>game_logic</div>
               </div>
 
-              <div className="kid-card" style={{ padding: '18px', background: '#fdf2f8', border: '2px solid #fbcfe8' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#be185d' }}>Thú Cưng & Shop</span>
-                  <Dog size={20} color="#db2777" />
+              <div className="kid-card" style={{ padding: '14px', background: '#fdf2f8', border: '2px solid #fbcfe8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#be185d' }}>Thú Cưng & Shop</span>
+                  <Dog size={18} color="#db2777" />
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#9d174d' }}>{pets.length + shopItems.length}</div>
-                <div style={{ fontSize: '11px', color: '#be185d', marginTop: '4px' }}>pets & shop</div>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#9d174d' }}>{pets.length + shopItems.length}</div>
+                <div style={{ fontSize: '10.5px', color: '#be185d', marginTop: '2px', fontFamily: 'monospace' }}>pets & shop</div>
               </div>
 
-              <div className="kid-card" style={{ padding: '18px', background: '#eff6ff', border: '2px solid #bfdbfe' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>Học Sinh Đăng Ký</span>
-                  <Users size={20} color="#2563eb" />
-                </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#1e40af' }}>{studentUsers.length}</div>
-                <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>{studentUsers.length} học sinh</span>
+              <div className="kid-card" style={{ 
+                padding: '14px', 
+                background: '#eff6ff', 
+                border: '2px solid #bfdbfe',
+                gridColumn: '1 / -1' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={18} color="#2563eb" />
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>Học Sinh Đăng Ký Hệ Thống</span>
+                  </div>
                   {adminUsers.length > 0 && (
-                    <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>
+                    <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 6px', borderRadius: '6px', fontWeight: 800, fontSize: '10.5px' }}>
                       +{adminUsers.length} admin
                     </span>
                   )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#1e40af' }}>{studentUsers.length}</div>
+                  <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: 700 }}>tài khoản học sinh tham gia học</div>
                 </div>
               </div>
             </div>
@@ -1238,29 +1258,75 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </div>
             </div>
 
-            {/* BẢNG TỔNG HỢP DỮ LIỆU TOÀN BỘ HỆ THỐNG (TABLE GRID) */}
-            <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            {/* BẢNG TỔNG HỢP DỮ LIỆU TOÀN BỘ HỆ THỐNG (TABLE GRID & MOBILE CARDS) */}
+            <div className="kid-card" style={{ padding: 'clamp(14px, 3.5vw, 24px)', background: '#ffffff', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Database size={20} color="#475569" />
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
-                    Bảng Quản Trị Dữ Liệu Hệ Thống (Data Grid View)
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(15px, 3.5vw, 18px)', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    Bảng Quản Trị Dữ Liệu Hệ Thống
                   </h3>
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', background: '#ecfdf5', padding: '4px 12px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', background: '#ecfdf5', padding: '3px 10px', borderRadius: '999px', border: '1.5px solid #a7f3d0', whiteSpace: 'nowrap' }}>
                   🟢 Supabase Online
                 </span>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+              {/* Mobile View (< 641px): Sleek Card List (Fixes horizontal scroll & distorted vertical text pills) */}
+              <div className="show-on-mobile" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { name: '📚 Thung Lũng Ngôn Ngữ', count: `${words.length} từ vựng`, table: 'game_vocabulary', tab: 'language', color: '#10b981' },
+                  { name: '🔢 Nông Trại Toán Học', count: `${mathLevels.length} bài toán`, table: 'game_math', tab: 'math', color: '#f59e0b' },
+                  { name: '🧩 Tháp Tư Duy Logic', count: `${logicLevels.length} câu đố`, table: 'game_logic', tab: 'logic', color: '#8b5cf6' },
+                  { name: '🐾 Thú Cưng Nuôi Dưỡng', count: `${pets.length} thú cưng`, table: 'game_pets', tab: 'pet', color: '#ec4899' },
+                  { name: '🎁 Cửa Hàng Quà Tặng', count: `${shopItems.length} vật phẩm`, table: 'game_shop', tab: 'pet', color: '#06b6d4' },
+                  { name: '👥 Học Sinh & User', count: `${studentUsers.length} bé (+${adminUsers.length} admin)`, table: 'players & progress', tab: 'player', color: '#6366f1' }
+                ].map((row, i) => (
+                  <div key={i} style={{
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    padding: '10px 12px',
+                    border: '1.5px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px'
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {row.name}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '10.5px', color: '#64748b', background: '#ffffff', padding: '1px 5px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                          {row.table}
+                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: row.color }}>
+                          {row.count}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => { sounds.playClick(); setActiveTab(row.tab); }} 
+                      className="btn-kid btn-blue" 
+                      style={{ padding: '6px 12px', fontSize: '11.5px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                    >
+                      Mở Bảng ➔
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop View (>= 641px): Full Data Table */}
+              <div className="hide-on-mobile" style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Bảng Dữ Liệu (Collection)</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Số Lượng</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Bảng Supabase</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569' }}>Trạng Thái</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>Bảng Dữ Liệu (Collection)</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>Số Lượng</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>Bảng Supabase</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', whiteSpace: 'nowrap' }}>Trạng Thái</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1273,16 +1339,16 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                       { name: '👥 Học Sinh & Người Dùng', count: `${studentUsers.length} bé (${adminUsers.length} admin)`, table: 'players & game_progress', tab: 'player', color: '#6366f1' }
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                        <td style={{ padding: '14px 16px', fontWeight: 800, color: '#1e293b' }}>{row.name}</td>
-                        <td style={{ padding: '14px 16px', fontWeight: 800, color: row.color, fontSize: '16px' }}>{row.count}</td>
-                        <td style={{ padding: '14px 16px', fontFamily: 'monospace', color: '#64748b', fontSize: '13px' }}>{row.table}</td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ background: '#ecfdf5', color: '#059669', padding: '4px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 800, border: '1px solid #a7f3d0' }}>
+                        <td style={{ padding: '12px 14px', fontWeight: 800, color: '#1e293b', whiteSpace: 'nowrap' }}>{row.name}</td>
+                        <td style={{ padding: '12px 14px', fontWeight: 800, color: row.color, fontSize: '15px', whiteSpace: 'nowrap' }}>{row.count}</td>
+                        <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#64748b', fontSize: '12.5px', whiteSpace: 'nowrap' }}>{row.table}</td>
+                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                          <span style={{ background: '#ecfdf5', color: '#059669', padding: '3px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: 800, border: '1px solid #a7f3d0', whiteSpace: 'nowrap' }}>
                             🟢 Đồng bộ
                           </span>
                         </td>
-                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <button onClick={() => setActiveTab(row.tab)} className="btn-kid btn-blue" style={{ padding: '6px 14px', fontSize: '12px' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button onClick={() => { sounds.playClick(); setActiveTab(row.tab); }} className="btn-kid btn-blue" style={{ padding: '5px 12px', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                             Mở Bảng ➔
                           </button>
                         </td>
@@ -1590,8 +1656,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </div>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '640px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
@@ -1868,8 +1934,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </div>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '680px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
@@ -2092,8 +2158,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </div>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '680px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
@@ -2233,8 +2299,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </button>
             </form>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '520px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
@@ -2325,8 +2391,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </button>
             </form>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '560px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
@@ -2564,8 +2630,8 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
             )}
 
             {/* Table Grid */}
-            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '45px' }}>STT</th>

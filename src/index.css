@@ -480,9 +480,17 @@ input, textarea {
   -webkit-overflow-scrolling: touch;
 }
 
+.page-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(10px, 3vw, 20px);
+  box-sizing: border-box;
+}
+
 @media (max-width: 640px) {
   .app-header {
-    padding: 6px 8px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 
   .modal-overlay {
@@ -503,6 +511,7 @@ input, textarea {
     display: none !important;
   }
 }
+
 
 
 

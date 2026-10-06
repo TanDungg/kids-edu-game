@@ -31,7 +31,10 @@ export default function Header({
       maxWidth: '100vw',
       zIndex: 100,
       borderBottom: '2px solid #e2e8f0',
-      padding: '6px 10px',
+      paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)',
+      paddingBottom: '6px',
+      paddingLeft: 'clamp(8px, 2vw, 16px)',
+      paddingRight: 'clamp(8px, 2vw, 16px)',
       boxSizing: 'border-box'
     }}>
       {/* Top Primary Bar */}
