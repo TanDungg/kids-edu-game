@@ -71,7 +71,14 @@ export default function AdminDashboard({
   const [playerEdit, setPlayerEdit] = useState({
     stars: playerData.stars || 5,
     coins: playerData.coins || 30,
-    level: playerData.level || 1
+    level: playerData.level || 1,
+    name: 'Bé Thám Hiểm',
+    email: '',
+    birthDate: '',
+    address: '',
+    phone: '',
+    hobby: '',
+    avatarUrl: ''
   });
 
   // Feedback & File Upload
@@ -389,13 +396,21 @@ export default function AdminDashboard({
     sounds.playSuccess();
 
     if (selectedPlayerId) {
-      await supabaseService.syncProgress({
+      await supabaseService.adminUpdatePlayer(selectedPlayerId, {
+        name: playerEdit.name,
+        email: playerEdit.email,
+        birthDate: playerEdit.birthDate,
+        address: playerEdit.address,
+        phone: playerEdit.phone,
+        hobby: playerEdit.hobby,
+        avatarUrl: playerEdit.avatarUrl
+      }, {
         stars: Number(playerEdit.stars),
         coins: Number(playerEdit.coins),
         level: Number(playerEdit.level)
-      }, selectedPlayerId);
+      });
       await fetchCloudUserData();
-      notify(`Đã cập nhật chỉ số của ${selectedPlayerName || 'học sinh'} lên Database thành công! ⭐`);
+      notify(`Đã cập nhật hồ sơ & chỉ số của "${playerEdit.name || selectedPlayerName}" vào Database (bảng public.players & game_progress) thành công! 🚀`);
     } else {
       if (onUpdatePlayerData) {
         onUpdatePlayerData({
@@ -406,6 +421,20 @@ export default function AdminDashboard({
       }
       notify('Đã cập nhật chỉ số của bé thành công! ⭐');
     }
+  };
+
+  const handleDeletePlayer = async (playerId, playerName) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa hồ sơ học sinh "${playerName || 'này'}" khỏi cơ sở dữ liệu Supabase không? Thao tác này sẽ xóa sạch dữ liệu tiến độ và không thể phục hồi!`)) {
+      return;
+    }
+    sounds.playClick();
+    await supabaseService.deletePlayer(playerId);
+    if (selectedPlayerId === playerId) {
+      setSelectedPlayerId(null);
+      setSelectedPlayerName('');
+    }
+    await fetchCloudUserData();
+    notify(`Đã xóa học sinh "${playerName || 'được chọn'}" khỏi Database! 🗑️`);
   };
 
   // ===================== 6. FULL BACKUP & RESTORE =====================
@@ -463,7 +492,12 @@ export default function AdminDashboard({
   };
 
   const copySQL = () => {
-    const sql = `-- 1. BẢNG TỪ VỰNG NGÔN NGỮ (Language Valley)
+    const sql = `-- ========================================================
+-- SCHEMA HOÀN CHỈNH CHO GAME GIÁO DỤC TRẺ EM (KIDS EDU GAME)
+-- Dán đoạn mã này vào SQL Editor trên Supabase và bấm RUN
+-- ========================================================
+
+-- 1. BẢNG TỪ VỰNG NGÔN NGỮ (Language Valley)
 CREATE TABLE IF NOT EXISTS public.game_vocabulary (
   id BIGSERIAL PRIMARY KEY,
   vn TEXT NOT NULL,
@@ -529,7 +563,53 @@ CREATE TABLE IF NOT EXISTS public.game_shop (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- BẬT RLS CHO CÁC BẢNG
+-- 6. BẢNG HỒ SƠ NGƯỜI CHƠI (Players) - Lưu trữ thông tin cá nhân và hồ sơ bé
+CREATE TABLE IF NOT EXISTS public.players (
+  id TEXT PRIMARY KEY,
+  name TEXT DEFAULT 'Bé Thám Hiểm',
+  email TEXT,
+  avatar_url TEXT,
+  birth_date DATE,
+  address TEXT,
+  phone TEXT,
+  hobby TEXT,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Bổ sung cột nếu bảng public.players đã tồn tại trước đó
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS hobby TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- 7. BẢNG TIẾN ĐỘ CHƠI (Game Progress)
+CREATE TABLE IF NOT EXISTS public.game_progress (
+  player_id TEXT PRIMARY KEY REFERENCES public.players(id) ON DELETE CASCADE,
+  stars INTEGER DEFAULT 5,
+  coins INTEGER DEFAULT 30,
+  level INTEGER DEFAULT 1,
+  pet_data JSONB DEFAULT '{"id": "cat", "name": "Bé Miu Miu", "hunger": 80, "happiness": 90}'::jsonb,
+  stats_data JSONB DEFAULT '{"language": {"completed": 0, "correct": 0}, "math": {"completed": 0, "correct": 0}, "logic": {"completed": 0, "correct": 0}}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 8. BẢNG NHẬT KÝ HỌC TẬP (Learning Logs)
+CREATE TABLE IF NOT EXISTS public.learning_logs (
+  id BIGSERIAL PRIMARY KEY,
+  player_id TEXT,
+  subject TEXT NOT NULL,
+  is_correct BOOLEAN DEFAULT true,
+  score_earned INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- BẬT RLS CHO CÁC BẢNG VÀ CẤP QUYỀN
 ALTER TABLE public.game_vocabulary ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public vocabulary" ON public.game_vocabulary FOR ALL TO public USING (true) WITH CHECK (true);
 
@@ -543,7 +623,16 @@ ALTER TABLE public.game_pets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public pets" ON public.game_pets FOR ALL TO public USING (true) WITH CHECK (true);
 
 ALTER TABLE public.game_shop ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (true) WITH CHECK (true);`;
+CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public players" ON public.players FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public game_progress" ON public.game_progress FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.learning_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO public USING (true) WITH CHECK (true);`;
     navigator.clipboard.writeText(sql);
     setIsCopiedSQL(true);
     sounds.playCoin();
@@ -2037,11 +2126,11 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Users size={22} color="#0284c7" />
                   <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
-                    Bảng Dữ Liệu Học Sinh & Người Dùng (Supabase Database)
+                    Bảng Dữ Liệu Học Sinh & Người Dùng (Bảng public.players)
                   </h3>
                 </div>
                 <p style={{ color: '#64748b', fontSize: '12px', margin: '4px 0 0' }}>
-                  Danh sách tài khoản học sinh, sao vàng, xu và thú cưng lưu trữ trên đám mây.
+                  Hồ sơ cá nhân, ngày sinh, địa chỉ, số điện thoại, sở thích và tiến độ học tập đồng bộ trực tiếp từ Supabase Database.
                 </p>
               </div>
 
@@ -2051,7 +2140,7 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                   <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
-                    placeholder="Tìm theo UID hoặc tên..."
+                    placeholder="Tìm theo tên, email, SĐT, UID..."
                     value={userSearchTerm}
                     onChange={(e) => setUserSearchTerm(e.target.value)}
                     style={{
@@ -2060,7 +2149,7 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                       border: '1.5px solid #cbd5e1',
                       fontSize: '13px',
                       outline: 'none',
-                      width: '200px'
+                      width: '230px'
                     }}
                   />
                 </div>
@@ -2083,13 +2172,15 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '50px' }}>STT</th>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '140px' }}>Mã UID</th>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Tên Bé / Tài Khoản</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', width: '45px' }}>STT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Bé & Học Sinh</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Email / Tài Khoản</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Ngày Sinh (Tuổi)</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Địa Chỉ & SĐT</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Sở Thích</th>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Cấp Độ</th>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Sao Vàng ⭐</th>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Xu Vàng 🪙</th>
-                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Bạn Thú Cưng</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'center' }}>Sao / Xu</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Thú Cưng</th>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569' }}>Cập Nhật</th>
                     <th style={{ padding: '12px 14px', fontWeight: 800, color: '#475569', textAlign: 'right' }}>Thao Tác</th>
                   </tr>
@@ -2099,10 +2190,21 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                     .filter(u => {
                       if (!userSearchTerm) return true;
                       const term = userSearchTerm.toLowerCase();
-                      return u.id?.toLowerCase().includes(term) || u.name?.toLowerCase().includes(term);
+                      return (
+                        u.id?.toLowerCase().includes(term) ||
+                        u.name?.toLowerCase().includes(term) ||
+                        u.email?.toLowerCase().includes(term) ||
+                        u.phone?.toLowerCase().includes(term) ||
+                        u.address?.toLowerCase().includes(term) ||
+                        u.hobby?.toLowerCase().includes(term)
+                      );
                     })
                     .map((u, index) => {
                       const isSelected = selectedPlayerId === u.id;
+                      const calculatedAge = u.birthDate
+                        ? Math.abs(new Date(Date.now() - new Date(u.birthDate).getTime()).getUTCFullYear() - 1970)
+                        : null;
+
                       return (
                         <tr
                           key={u.id || index}
@@ -2115,28 +2217,106 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                           onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                         >
                           <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
-                          <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: '11px', color: '#64748b' }}>
-                            <span title={u.id}>
-                              {u.id ? `${u.id.slice(0, 8)}...` : 'N/A'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 14px', fontWeight: 800, color: '#1e293b', fontSize: '14px' }}>
+                          
+                          {/* Bé & Học Sinh */}
+                          <td style={{ padding: '12px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '18px' }}>🧒</span>
-                              <span>{u.name || 'Bé Thám Hiểm'}</span>
+                              {u.avatarUrl ? (
+                                <img
+                                  src={u.avatarUrl}
+                                  alt=""
+                                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0f2fe', border: '1.5px solid #38bdf8' }}
+                                />
+                              ) : (
+                                <span style={{ fontSize: '22px' }}>🧒</span>
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '13px' }}>
+                                  {u.name || 'Bé Thám Hiểm'}
+                                </div>
+                                <div style={{ fontFamily: 'monospace', fontSize: '10px', color: '#94a3b8' }} title={u.id}>
+                                  {u.id ? `${u.id.slice(0, 8)}...` : 'N/A'}
+                                </div>
+                              </div>
                             </div>
                           </td>
+
+                          {/* Email & Role */}
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                              {u.email || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có email</span>}
+                            </div>
+                            {u.role === 'admin' ? (
+                              <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>
+                                👑 Admin
+                              </span>
+                            ) : (
+                              <span style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
+                                Học sinh
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Ngày Sinh & Tuổi */}
+                          <td style={{ padding: '12px 14px' }}>
+                            {u.birthDate ? (
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                                  {new Date(u.birthDate).toLocaleDateString('vi-VN')}
+                                </div>
+                                {!isNaN(calculatedAge) && calculatedAge > 0 && (
+                                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 800 }}>
+                                    ({calculatedAge} tuổi)
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '11px' }}>Chưa cập nhật</span>
+                            )}
+                          </td>
+
+                          {/* Địa chỉ & SĐT */}
+                          <td style={{ padding: '12px 14px' }}>
+                            {u.phone && (
+                              <div style={{ fontWeight: 700, color: '#0f766e', fontSize: '12px' }}>
+                                📞 {u.phone}
+                              </div>
+                            )}
+                            {u.address ? (
+                              <div style={{ color: '#64748b', fontSize: '11px', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.address}>
+                                📍 {u.address}
+                              </div>
+                            ) : (
+                              !u.phone && <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '11px' }}>—</span>
+                            )}
+                          </td>
+
+                          {/* Sở thích */}
+                          <td style={{ padding: '12px 14px' }}>
+                            {u.hobby ? (
+                              <span style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
+                                🎨 {u.hobby}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '11px' }}>—</span>
+                            )}
+                          </td>
+
+                          {/* Cấp độ */}
                           <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                             <span style={{ background: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800 }}>
                               Cấp {u.level || 1}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#ca8a04', fontSize: '14px' }}>
-                            {u.stars || 0}
+
+                          {/* Sao / Xu */}
+                          <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontWeight: 800, color: '#ca8a04', fontSize: '13px' }}>{u.stars || 0} ⭐</span>
+                            <span style={{ color: '#cbd5e1', margin: '0 4px' }}>|</span>
+                            <span style={{ fontWeight: 800, color: '#d97706', fontSize: '13px' }}>{u.coins || 0} 🪙</span>
                           </td>
-                          <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 800, color: '#d97706', fontSize: '14px' }}>
-                            {u.coins || 0}
-                          </td>
+
+                          {/* Thú cưng */}
                           <td style={{ padding: '12px 14px' }}>
                             {u.pet ? (
                               <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -2147,28 +2327,50 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                               <span style={{ fontSize: '11px', color: '#94a3b8' }}>Chưa chọn</span>
                             )}
                           </td>
+
+                          {/* Cập nhật */}
                           <td style={{ padding: '12px 14px', color: '#64748b', fontSize: '11px' }}>
                             {u.updatedAt ? new Date(u.updatedAt).toLocaleDateString('vi-VN') : 'Mới tạo'}
                           </td>
+
+                          {/* Thao tác */}
                           <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sounds.playClick();
-                                setSelectedPlayerId(u.id);
-                                setSelectedPlayerName(u.name || 'Bé Thám Hiểm');
-                                setPlayerEdit({
-                                  stars: u.stars || 5,
-                                  coins: u.coins || 30,
-                                  level: u.level || 1
-                                });
-                                notify(`Đã chọn học sinh "${u.name || 'Bé Thám Hiểm'}" để chỉnh sửa chỉ số!`);
-                              }}
-                              className={`btn-kid ${isSelected ? 'btn-green' : 'btn-blue'}`}
-                              style={{ padding: '5px 12px', fontSize: '11px' }}
-                            >
-                              {isSelected ? '✓ Đang chọn' : 'Chọn & Sửa'}
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playClick();
+                                  setSelectedPlayerId(u.id);
+                                  setSelectedPlayerName(u.name || 'Bé Thám Hiểm');
+                                  setPlayerEdit({
+                                    stars: u.stars || 5,
+                                    coins: u.coins || 30,
+                                    level: u.level || 1,
+                                    name: u.name || 'Bé Thám Hiểm',
+                                    email: u.email || '',
+                                    birthDate: u.birthDate || '',
+                                    address: u.address || '',
+                                    phone: u.phone || '',
+                                    hobby: u.hobby || '',
+                                    avatarUrl: u.avatarUrl || ''
+                                  });
+                                  notify(`Đã chọn hồ sơ "${u.name || 'Bé Thám Hiểm'}" để chỉnh sửa!`);
+                                }}
+                                className={`btn-kid ${isSelected ? 'btn-green' : 'btn-blue'}`}
+                                style={{ padding: '5px 10px', fontSize: '11px' }}
+                              >
+                                {isSelected ? '✓ Đang chọn' : 'Sửa'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePlayer(u.id, u.name)}
+                                className="btn-kid btn-red"
+                                style={{ padding: '5px 8px', fontSize: '11px' }}
+                                title="Xóa học sinh này khỏi cơ sở dữ liệu"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -2176,7 +2378,7 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
 
                   {cloudUsers.length === 0 && (
                     <tr>
-                      <td colSpan={9} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                      <td colSpan={11} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
                         <div style={{ fontSize: '32px', marginBottom: '8px' }}>☁️</div>
                         <div style={{ fontWeight: 800, fontSize: '14px', color: '#334155', marginBottom: '4px' }}>
                           Chưa có tài khoản nào được ghi nhận trên Supabase
@@ -2192,18 +2394,25 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
             </div>
           </div>
 
-          {/* SECTION 2: ĐIỀU CHỈNH CHỈ SỐ HỌC SINH ĐƯỢC CHỌN */}
+          {/* SECTION 2: ĐIỀU CHỈNH HỒ SƠ & CHỈ SỐ HỌC SINH ĐƯỢC CHỌN */}
           <div className="kid-card" style={{ padding: '24px', background: '#ffffff', marginBottom: '24px', border: selectedPlayerId ? '2.5px solid #38bdf8' : '2px solid #e2e8f0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <User size={22} color="#0284c7" />
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
-                  {selectedPlayerId ? (
-                    <span>Đang Chỉnh Sửa Chỉ Số Cho: <strong style={{ color: '#0284c7' }}>{selectedPlayerName}</strong></span>
-                  ) : (
-                    <span>Điều Chỉnh Chỉ Số Tiến Độ Người Chơi Cục Bộ (Bé Thám Hiểm)</span>
-                  )}
-                </h3>
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                    {selectedPlayerId ? (
+                      <span>Chỉnh Sửa Hồ Sơ & Chỉ Số Cho: <strong style={{ color: '#0284c7' }}>{selectedPlayerName}</strong></span>
+                    ) : (
+                      <span>Điều Chỉnh Chỉ Số Tiến Độ Cục Bộ (Bé Thám Hiểm)</span>
+                    )}
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    {selectedPlayerId 
+                      ? 'Dữ liệu cá nhân và chỉ số sẽ được cập nhật trực tiếp vào bảng public.players & public.game_progress trên Supabase Database'
+                      : 'Chọn một học sinh từ danh sách bên trên để cập nhật thông tin hồ sơ và chỉ số trên đám mây'}
+                  </div>
+                </div>
               </div>
 
               {selectedPlayerId && (
@@ -2216,7 +2425,14 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                     setPlayerEdit({
                       stars: playerData.stars || 5,
                       coins: playerData.coins || 30,
-                      level: playerData.level || 1
+                      level: playerData.level || 1,
+                      name: 'Bé Thám Hiểm',
+                      email: '',
+                      birthDate: '',
+                      address: '',
+                      phone: '',
+                      hobby: '',
+                      avatarUrl: ''
                     });
                   }}
                   className="btn-kid"
@@ -2228,6 +2444,94 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
             </div>
 
             <form onSubmit={handleSavePlayer}>
+              {/* Nếu có học sinh được chọn từ Supabase: hiển thị thêm các trường thông tin cá nhân */}
+              {selectedPlayerId && (
+                <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📝 Thông Tin Cá Nhân (Bảng public.players)</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Họ và tên bé:
+                      </label>
+                      <input
+                        type="text"
+                        value={playerEdit.name}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, name: e.target.value })}
+                        placeholder="VD: Bé Min Min"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Email tài khoản:
+                      </label>
+                      <input
+                        type="email"
+                        value={playerEdit.email}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, email: e.target.value })}
+                        placeholder="email@example.com"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Ngày sinh của bé:
+                      </label>
+                      <input
+                        type="date"
+                        value={playerEdit.birthDate}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, birthDate: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Số điện thoại phụ huynh:
+                      </label>
+                      <input
+                        type="tel"
+                        value={playerEdit.phone}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, phone: e.target.value })}
+                        placeholder="0987 654 321"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Địa chỉ gia đình:
+                      </label>
+                      <input
+                        type="text"
+                        value={playerEdit.address}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, address: e.target.value })}
+                        placeholder="Quận 1, TP. Hồ Chí Minh"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        Sở thích của bé:
+                      </label>
+                      <input
+                        type="text"
+                        value={playerEdit.hobby}
+                        onChange={(e) => setPlayerEdit({ ...playerEdit, hobby: e.target.value })}
+                        placeholder="Vẽ tranh, xem hoạt hình, xếp hình..."
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Chỉ số Game */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
                 <div style={{ background: '#fef9c3', border: '2px solid #fde047', borderRadius: '16px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#a16207', marginBottom: '8px' }}>
@@ -2272,12 +2576,26 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                 </div>
               </div>
 
-              <button type="submit" className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '14px' }}>
-                <Check size={16} />
-                <span>
-                  {selectedPlayerId ? `Lưu Chỉ Số Cho "${selectedPlayerName}" Vào Database ☁️` : 'Cập Nhật Chỉ Số Cho Bé'}
-                </span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <button type="submit" className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '14px' }}>
+                  <Check size={16} />
+                  <span>
+                    {selectedPlayerId ? `Lưu Toàn Bộ Hồ Sơ & Chỉ Số Vào Database (public.players) ☁️` : 'Cập Nhật Chỉ Số Cho Bé'}
+                  </span>
+                </button>
+
+                {selectedPlayerId && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePlayer(selectedPlayerId, selectedPlayerName)}
+                    className="btn-kid btn-red"
+                    style={{ padding: '10px 18px', fontSize: '13px' }}
+                  >
+                    <Trash2 size={15} />
+                    <span>Xóa Tài Khoản Này Khỏi Database</span>
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
@@ -2306,10 +2624,10 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
 
             <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>Đoạn Mã Tạo Bảng SQL Supabase (Chạy trong SQL Editor):</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#334155' }}>Đoạn Mã Tạo & Nâng Cấp Bảng SQL Supabase (Chạy trong SQL Editor):</span>
                 <button onClick={copySQL} className="btn-kid btn-blue" style={{ padding: '6px 14px', fontSize: '12px' }}>
                   {isCopiedSQL ? <Check size={14} /> : <Copy size={14} />}
-                  <span>{isCopiedSQL ? 'Đã Sao Chép SQL!' : 'Sao Chép SQL'}</span>
+                  <span>{isCopiedSQL ? 'Đã Sao Chép SQL!' : 'Sao Chép Toàn Bộ SQL'}</span>
                 </button>
               </div>
 
@@ -2323,12 +2641,30 @@ CREATE POLICY "Allow public shop" ON public.game_shop FOR ALL TO public USING (t
                 fontFamily: 'monospace',
                 lineHeight: 1.5
               }}>
-{`-- 1. Bảng Thông Tin Bé
+{`-- 1. Bảng Thông Tin Bé & Người Dùng (Đầy đủ cột hồ sơ)
 CREATE TABLE IF NOT EXISTS public.players (
   id TEXT PRIMARY KEY,
   name TEXT DEFAULT 'Bé Thám Hiểm',
-  created_at TIMESTAMPTZ DEFAULT now()
+  email TEXT,
+  avatar_url TEXT,
+  birth_date DATE,
+  address TEXT,
+  phone TEXT,
+  hobby TEXT,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Cập nhật cột nếu bảng players đã được tạo trước đó
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS hobby TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- 2. Bảng Tiến Độ Game (Sao, Xu, Cấp Độ, Thú Cưng)
 CREATE TABLE IF NOT EXISTS public.game_progress (
@@ -2351,9 +2687,15 @@ CREATE TABLE IF NOT EXISTS public.learning_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE public.players DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.game_progress DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.learning_logs DISABLE ROW LEVEL SECURITY;`}
+-- Bật RLS và cấp quyền
+ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public players" ON public.players FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.game_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public game_progress" ON public.game_progress FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.learning_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO public USING (true) WITH CHECK (true);`}
               </pre>
             </div>
           </div>

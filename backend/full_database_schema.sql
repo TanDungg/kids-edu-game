@@ -69,12 +69,30 @@ CREATE TABLE IF NOT EXISTS public.game_shop (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. BẢNG HỒ SƠ NGƯỜI CHƠI (Players)
+-- 6. BẢNG HỒ SƠ NGƯỜI CHƠI (Players) - Lưu trữ toàn bộ thông tin cá nhân và hồ sơ bé
 CREATE TABLE IF NOT EXISTS public.players (
   id TEXT PRIMARY KEY,
   name TEXT DEFAULT 'Bé Thám Hiểm',
-  created_at TIMESTAMPTZ DEFAULT now()
+  email TEXT,
+  avatar_url TEXT,
+  birth_date DATE,
+  address TEXT,
+  phone TEXT,
+  hobby TEXT,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Tự động thêm các cột hồ sơ mới nếu bảng public.players đã tồn tại trước đó
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS hobby TEXT;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- 7. BẢNG TIẾN ĐỘ CHƠI (Game Progress)
 CREATE TABLE IF NOT EXISTS public.game_progress (

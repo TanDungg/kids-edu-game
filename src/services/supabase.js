@@ -297,7 +297,16 @@ class SupabaseService {
     if (!this.client) return null;
     const playerId = explicitUserId || this.currentUser?.id || 'kid_demo_01';
     try {
-      await this.ensurePlayerProfile(playerId, this.currentUser?.user_metadata?.full_name || 'Bé Thám Hiểm');
+      const meta = this.currentUser?.user_metadata || {};
+      await this.ensurePlayerProfile(playerId, meta.full_name || 'Bé Thám Hiểm', {
+        email: this.currentUser?.email,
+        avatar_url: meta.avatar_url,
+        birth_date: meta.birth_date,
+        address: meta.address,
+        phone: meta.phone,
+        hobby: meta.hobby,
+        role: meta.role || 'user'
+      });
       const payload = {
         player_id: playerId,
         stars: playerData.stars,
@@ -364,6 +373,7 @@ class SupabaseService {
 
   async signUp({ email, password, fullName, role = 'user' }) {
     if (!this.client) throw new Error('Chưa kết nối Supabase API');
+    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`;
     const { data, error } = await this.client.auth.signUp({
       email,
       password,
@@ -371,14 +381,18 @@ class SupabaseService {
         data: {
           full_name: fullName || 'Bé Thám Hiểm',
           role: role,
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`
+          avatar_url: avatarUrl
         }
       }
     });
     if (error) throw error;
     if (data?.user) {
       this.currentUser = data.user;
-      await this.ensurePlayerProfile(data.user.id, fullName || email);
+      await this.ensurePlayerProfile(data.user.id, fullName || email, {
+        email: email,
+        avatar_url: avatarUrl,
+        role: role
+      });
     }
     return data;
   }
@@ -392,7 +406,16 @@ class SupabaseService {
     if (error) throw error;
     if (data?.user) {
       this.currentUser = data.user;
-      await this.ensurePlayerProfile(data.user.id, data.user.user_metadata?.full_name || email);
+      const meta = data.user.user_metadata || {};
+      await this.ensurePlayerProfile(data.user.id, meta.full_name || email, {
+        email: data.user.email,
+        avatar_url: meta.avatar_url,
+        birth_date: meta.birth_date,
+        address: meta.address,
+        phone: meta.phone,
+        hobby: meta.hobby,
+        role: meta.role || 'user'
+      });
     }
     return data;
   }
@@ -422,26 +445,120 @@ class SupabaseService {
 
   async updateUserProfile(profileData) {
     if (!this.client) throw new Error('Chưa kết nối Supabase API');
+    
+    // 1. Cập nhật Auth Metadata trên Supabase Auth
+    const authDataPayload = {
+      full_name: profileData.full_name || profileData.name,
+      avatar_url: profileData.avatar_url || profileData.avatar,
+      birth_date: profileData.birth_date || profileData.birthDate,
+      address: profileData.address,
+      phone: profileData.phone,
+      hobby: profileData.hobby
+    };
+
     const { data, error } = await this.client.auth.updateUser({
-      data: profileData
+      data: authDataPayload
     });
     if (error) throw error;
+
+    // 2. Ghi trực tiếp xuống bảng public.players trong Database
     if (data?.user) {
       this.currentUser = data.user;
-      await this.ensurePlayerProfile(data.user.id, profileData.full_name || data.user.email);
+      await this.ensurePlayerProfile(data.user.id, authDataPayload.full_name || data.user.email, {
+        email: data.user.email,
+        avatar_url: authDataPayload.avatar_url,
+        birth_date: authDataPayload.birth_date,
+        address: authDataPayload.address,
+        phone: authDataPayload.phone,
+        hobby: authDataPayload.hobby,
+        role: data.user.user_metadata?.role || 'user'
+      });
     }
     return data;
   }
 
-  async ensurePlayerProfile(userId, name) {
+  async ensurePlayerProfile(userId, name, extraData = {}) {
     if (!this.client || !userId) return;
     try {
-      await this.client.from('players').upsert({
+      const meta = this.currentUser?.user_metadata || {};
+      const payload = {
         id: userId,
-        name: name || 'Bé Thám Hiểm'
+        name: name || meta.full_name || 'Bé Thám Hiểm',
+        email: extraData.email || this.currentUser?.email || null,
+        avatar_url: extraData.avatar_url || extraData.avatar || meta.avatar_url || null,
+        birth_date: extraData.birth_date || extraData.birthDate || meta.birth_date || null,
+        address: extraData.address !== undefined ? extraData.address : (meta.address || null),
+        phone: extraData.phone !== undefined ? extraData.phone : (meta.phone || null),
+        hobby: extraData.hobby !== undefined ? extraData.hobby : (meta.hobby || null),
+        role: extraData.role || meta.role || 'user',
+        updated_at: new Date().toISOString()
+      };
+
+      // Làm sạch các trường undefined
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) delete payload[key];
       });
+
+      const { error } = await this.client.from('players').upsert(payload);
+      if (error) {
+        // Dự phòng nếu database chưa chạy script migration bổ sung cột
+        console.warn('Upsert player full profile warning (thử lại với bảng cơ bản):', error.message);
+        await this.client.from('players').upsert({
+          id: userId,
+          name: name || meta.full_name || 'Bé Thám Hiểm'
+        });
+      }
     } catch (e) {
       console.warn('Ensure player profile warning:', e);
+    }
+  }
+
+  async adminUpdatePlayer(playerId, profileData, progressData) {
+    if (!this.client || !playerId) throw new Error('Thiếu thông tin người chơi');
+    
+    // 1. Cập nhật thông tin vào bảng public.players
+    if (profileData) {
+      const payload = {
+        id: playerId,
+        name: profileData.name || 'Bé Thám Hiểm',
+        email: profileData.email || null,
+        avatar_url: profileData.avatarUrl || profileData.avatar_url || null,
+        birth_date: profileData.birthDate || profileData.birth_date || null,
+        address: profileData.address || null,
+        phone: profileData.phone || null,
+        hobby: profileData.hobby || null,
+        updated_at: new Date().toISOString()
+      };
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) delete payload[key];
+      });
+
+      const { error: pErr } = await this.client.from('players').upsert(payload);
+      if (pErr) {
+        console.warn('Admin update players table warning:', pErr.message);
+        await this.client.from('players').upsert({
+          id: playerId,
+          name: profileData.name || 'Bé Thám Hiểm'
+        });
+      }
+    }
+
+    // 2. Cập nhật tiến độ vào bảng game_progress nếu có
+    if (progressData) {
+      await this.syncProgress(progressData, playerId);
+    }
+
+    return true;
+  }
+
+  async deletePlayer(playerId) {
+    if (!this.client || !playerId) return;
+    try {
+      await this.client.from('learning_logs').delete().eq('player_id', playerId);
+      await this.client.from('game_progress').delete().eq('player_id', playerId);
+      await this.client.from('players').delete().eq('id', playerId);
+    } catch (e) {
+      console.warn('Delete player error:', e);
     }
   }
 
@@ -506,12 +623,20 @@ class SupabaseService {
         return {
           id: pl.id,
           name: pl.name || 'Bé Thám Hiểm',
+          email: pl.email || '',
+          avatarUrl: pl.avatar_url || '',
+          birthDate: pl.birth_date || '',
+          address: pl.address || '',
+          phone: pl.phone || '',
+          hobby: pl.hobby || '',
+          role: pl.role || 'user',
           stars: prog.stars !== undefined ? prog.stars : 5,
           coins: prog.coins !== undefined ? prog.coins : 30,
           level: prog.level !== undefined ? prog.level : 1,
           pet: prog.pet_data || null,
           stats: prog.stats_data || null,
-          updatedAt: prog.updated_at || pl.created_at || new Date().toISOString()
+          createdAt: pl.created_at || null,
+          updatedAt: prog.updated_at || pl.updated_at || pl.created_at || new Date().toISOString()
         };
       });
 
