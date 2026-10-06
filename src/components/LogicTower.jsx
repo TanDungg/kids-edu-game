@@ -53,7 +53,7 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
       onCompleteLevel('logic', { correct: true, starsEarned: 1, coinsEarned: 20 });
     } else {
       sounds.playError();
-      setWrongMsg(`Chưa đúng quy luật rồi bé ơi! ${opt} chưa phải hình còn thiếu, bé quan sát kỹ lại nhé! ❌`);
+      setWrongMsg(`Chưa đúng quy luật rồi bé ơi! ${opt} chưa phải đáp án đúng, bé quan sát kỹ lại nhé! ❌`);
       sounds.speak('Chưa đúng rồi, bé hãy thử nghĩ lại xem nào!', 'vi-VN');
     }
   };
@@ -86,77 +86,89 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: '800px' }}>
+    <div className="game-screen-wrapper">
       {/* Top Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '10px',
-        marginBottom: '16px'
+        gap: '6px',
+        marginBottom: '6px',
+        flexShrink: 0
       }}>
-        <button onClick={onBack} className="btn-kid btn-purple" style={{ padding: '8px 14px', fontSize: '13px' }}>
-          <ArrowLeft size={16} />
+        <button onClick={onBack} className="btn-kid btn-purple" style={{ padding: '5px 10px', fontSize: '11.5px', flexShrink: 0 }}>
+          <ArrowLeft size={14} />
           <span>Bản đồ</span>
         </button>
 
         <div style={{
           background: '#f5f3ff',
           color: '#6d28d9',
-          padding: '5px 14px',
+          padding: '3px 10px',
           borderRadius: '999px',
           fontWeight: 800,
-          fontSize: '13px',
-          border: '2px solid #ddd6fe',
+          fontSize: '11px',
+          border: '1.5px solid #ddd6fe',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          textAlign: 'center'
+          gap: '4px',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '65%'
         }}>
-          <Brain size={16} />
-          <span>Câu {levelIndex + 1} / {logicLevels.length}: {currentLevel.title}</span>
+          <Brain size={13} />
+          <span>Câu {levelIndex + 1}/{logicLevels.length}: {currentLevel.title}</span>
         </div>
 
-        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }} title="Làm lại câu đố này">
-          <RefreshCw size={16} />
+        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Làm lại câu đố này">
+          <RefreshCw size={12} />
         </button>
       </div>
 
       {/* Main Puzzle Card */}
-      <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 32px)', textAlign: 'center', background: '#ffffff' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 4vw, 22px)', color: '#4c1d95', fontWeight: 800, marginBottom: '8px' }}>
-          {currentLevel.promptVN}
-        </h3>
-        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '20px' }}>
-          {currentLevel.promptEN}
-        </p>
+      <div className="game-card-compact">
+        {/* Top Prompt */}
+        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 2.4vh, 18px)', color: '#4c1d95', fontWeight: 800, margin: '0 0 2px' }}>
+            {currentLevel.promptVN}
+          </h3>
+          <p style={{ color: '#64748b', fontSize: 'clamp(11px, 1.8vh, 13px)', fontWeight: 600, margin: '0 0 6px' }}>
+            {currentLevel.promptEN}
+          </p>
+        </div>
 
-        {/* Level Type: PATTERN */}
+        {/* Level Type: PATTERN (Sequence with missing slot) */}
         {currentLevel.type === 'pattern' && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 'clamp(6px, 2vw, 12px)',
-            margin: '16px 0',
+            gap: 'clamp(5px, 1.5vw, 10px)',
+            margin: '4px 0',
             flexWrap: 'wrap',
-            padding: 'clamp(14px, 3vw, 24px)',
+            padding: 'clamp(8px, 1.5vh, 14px)',
             background: '#faf5ff',
-            borderRadius: '20px',
-            border: '3px dashed #c084fc'
+            borderRadius: '16px',
+            border: '2px dashed #c084fc',
+            flexShrink: 0
           }}>
             {currentLevel.sequence.map((item, idx) => (
               <div
                 key={idx}
                 className="pattern-item-box"
                 style={{
+                  width: 'clamp(38px, 7.5vh, 54px)',
+                  height: 'clamp(38px, 7.5vh, 54px)',
+                  fontSize: 'clamp(20px, 4vh, 28px)',
                   background: '#ffffff',
                   border: '2px solid #e9d5ff',
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 0 #d8b4fe'
+                  boxShadow: '0 3px 0 #d8b4fe'
                 }}
               >
                 {item}
@@ -166,46 +178,80 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             <div
               className="pattern-item-box"
               style={{
-                background: '#f3e8ff',
-                border: '3px dashed #9333ea',
+                width: 'clamp(38px, 7.5vh, 54px)',
+                height: 'clamp(38px, 7.5vh, 54px)',
+                fontSize: 'clamp(20px, 4vh, 28px)',
+                background: isSuccess ? '#dcfce7' : '#f3e8ff',
+                border: isSuccess ? '2.5px solid #22c55e' : '2px dashed #9333ea',
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 900,
-                color: '#7e22ce'
+                color: isSuccess ? '#15803d' : '#7e22ce',
+                boxShadow: isSuccess ? '0 3px 0 #16a34a' : '0 3px 0 #c084fc'
               }}
             >
-              ?
+              {isSuccess ? currentLevel.answer : '?'}
             </div>
           </div>
         )}
 
-        {/* Level Type: ODD ONE OUT */}
+        {/* Level Type: ODD ONE OUT (Select different object) */}
         {currentLevel.type === 'odd_one_out' && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-            gap: '16px',
-            margin: '24px 0'
+            gridTemplateColumns: `repeat(${Math.min(currentLevel.items.length, 4)}, 1fr)`,
+            gap: 'clamp(6px, 1.5vw, 12px)',
+            margin: '4px 0',
+            flexShrink: 0
           }}>
-            {currentLevel.items.map((item, idx) => (
-              <div
-                key={idx}
-                onClick={() => handlePickOption(item.emoji)}
-                style={{
-                  padding: '20px',
-                  borderRadius: '20px',
-                  background: selectedOption === item.emoji ? '#f3e8ff' : '#f8fafc',
-                  border: selectedOption === item.emoji ? '3px solid #9333ea' : '3px solid #e2e8f0',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 0 #cbd5e1',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '8px' }}>{item.emoji}</div>
-                <div style={{ fontWeight: 800, color: '#334155', fontSize: '14px' }}>{item.name}</div>
-              </div>
-            ))}
+            {currentLevel.items.map((item, idx) => {
+              const isSelected = selectedOption === item.emoji;
+              const isAnswerCorrect = String(item.emoji) === String(currentLevel.answer);
+
+              let cardBg = '#f8fafc';
+              let cardBorder = '2px solid #e2e8f0';
+              let cardShadow = '0 3px 0 #cbd5e1';
+              let cardClass = '';
+
+              if (isSuccess && isAnswerCorrect) {
+                cardBg = '#dcfce7';
+                cardBorder = '2.5px solid #22c55e';
+                cardShadow = '0 3px 0 #16a34a';
+              } else if (isSelected && !isSuccess) {
+                cardBg = '#fef2f2';
+                cardBorder = '2.5px solid #ef4444';
+                cardShadow = '0 3px 0 #dc2626';
+                cardClass = 'animate-shake';
+              }
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handlePickOption(item.emoji)}
+                  className={cardClass}
+                  style={{
+                    padding: 'clamp(8px, 1.5vh, 14px) 6px',
+                    borderRadius: '14px',
+                    background: cardBg,
+                    border: cardBorder,
+                    boxShadow: cardShadow,
+                    cursor: isSuccess ? 'default' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: 'clamp(28px, 5.5vh, 42px)', lineHeight: 1, marginBottom: '4px' }}>
+                    {item.emoji}
+                  </div>
+                  <div style={{ fontWeight: 800, color: isSuccess && isAnswerCorrect ? '#15803d' : '#334155', fontSize: 'clamp(11px, 1.8vh, 13px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.name}
+                    {isSuccess && isAnswerCorrect && ' ✓'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -215,54 +261,97 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'flex-end',
-            gap: '24px',
-            margin: '24px 0',
-            flexWrap: 'wrap'
+            gap: 'clamp(8px, 2vw, 16px)',
+            margin: '4px 0',
+            flexWrap: 'wrap',
+            flexShrink: 0
           }}>
-            {currentLevel.items.map((item, idx) => (
-              <div
-                key={idx}
-                onClick={() => handlePickOption(item.emoji)}
-                style={{
-                  padding: '16px 24px',
-                  borderRadius: '20px',
-                  background: selectedOption === item.emoji ? '#f3e8ff' : '#f8fafc',
-                  border: selectedOption === item.emoji ? '3px solid #9333ea' : '3px solid #e2e8f0',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 0 #cbd5e1',
-                  textAlign: 'center'
-                }}
-              >
-                <div style={{ fontSize: `${28 + item.size * 18}px` }}>{item.emoji}</div>
-                <div style={{ fontWeight: 800, color: '#334155', marginTop: '8px' }}>{item.name}</div>
-              </div>
-            ))}
+            {currentLevel.items.map((item, idx) => {
+              const isSelected = selectedOption === item.emoji;
+              const isAnswerCorrect = String(item.emoji) === String(currentLevel.answer);
+
+              let cardBg = '#f8fafc';
+              let cardBorder = '2px solid #e2e8f0';
+              let cardShadow = '0 3px 0 #cbd5e1';
+              let cardClass = '';
+
+              if (isSuccess && isAnswerCorrect) {
+                cardBg = '#dcfce7';
+                cardBorder = '2.5px solid #22c55e';
+                cardShadow = '0 3px 0 #16a34a';
+              } else if (isSelected && !isSuccess) {
+                cardBg = '#fef2f2';
+                cardBorder = '2.5px solid #ef4444';
+                cardShadow = '0 3px 0 #dc2626';
+                cardClass = 'animate-shake';
+              }
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handlePickOption(item.emoji)}
+                  className={cardClass}
+                  style={{
+                    padding: 'clamp(8px, 1.5vh, 14px) clamp(10px, 2.5vw, 18px)',
+                    borderRadius: '14px',
+                    background: cardBg,
+                    border: cardBorder,
+                    boxShadow: cardShadow,
+                    cursor: isSuccess ? 'default' : 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ fontSize: `${22 + (item.size || 1) * 12}px`, lineHeight: 1 }}>{item.emoji}</div>
+                  <div style={{ fontWeight: 800, color: isSuccess && isAnswerCorrect ? '#15803d' : '#334155', marginTop: '4px', fontSize: '11.5px' }}>
+                    {item.name}
+                    {isSuccess && isAnswerCorrect && ' ✓'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Pattern Options Pick Buttons */}
+        {/* Pattern Choice Options Buttons */}
         {currentLevel.type === 'pattern' && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#334155', marginBottom: '10px' }}>
+          <div style={{ margin: '4px 0', flexShrink: 0, textAlign: 'center' }}>
+            <div style={{ fontSize: 'clamp(12px, 2vh, 13.5px)', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
               Bé hãy chọn hình còn thiếu:
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              {currentLevel.options.map((opt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handlePickOption(opt)}
-                  className="btn-kid btn-yellow"
-                  style={{
-                    width: '56px',
-                    height: '56px',
-                    fontSize: '26px',
-                    borderRadius: '14px',
-                    padding: 0
-                  }}
-                >
-                  {opt}
-                </button>
-              ))}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(6px, 1.8vw, 12px)', flexWrap: 'wrap' }}>
+              {currentLevel.options.map((opt, idx) => {
+                const isSelected = selectedOption === opt;
+                const isAnswerCorrect = String(opt) === String(currentLevel.answer);
+
+                let btnClass = 'btn-yellow';
+                if (isSuccess && isAnswerCorrect) {
+                  btnClass = 'btn-green';
+                } else if (isSelected && !isSuccess) {
+                  btnClass = 'btn-red animate-shake';
+                } else if (isSuccess) {
+                  btnClass = 'btn-gray';
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    disabled={isSuccess}
+                    onClick={() => handlePickOption(opt)}
+                    className={`btn-kid ${btnClass}`}
+                    style={{
+                      width: 'clamp(44px, 8vh, 56px)',
+                      height: 'clamp(44px, 8vh, 56px)',
+                      fontSize: 'clamp(22px, 4vh, 28px)',
+                      borderRadius: '12px',
+                      padding: 0
+                    }}
+                  >
+                    {opt}
+                    {isSuccess && isAnswerCorrect && ' ✓'}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -273,49 +362,51 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             background: '#fef2f2',
             border: '1.5px solid #fecaca',
             color: '#b91c1c',
-            padding: '8px 14px',
-            borderRadius: '12px',
-            fontSize: '12.5px',
+            padding: '4px 10px',
+            borderRadius: '10px',
+            fontSize: '11.5px',
             fontWeight: 800,
-            marginTop: '12px',
+            marginTop: '4px',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '4px',
+            flexShrink: 0
           }}>
             <span>❌</span>
             <span>{wrongMsg}</span>
           </div>
         )}
 
-        {/* Success Banner */}
+        {/* Win Banner */}
         {isSuccess && (
           <div className="animate-pop-in" style={{
-            marginTop: '28px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)',
-            borderRadius: '20px',
-            border: '3px solid #7c3aed',
+            marginTop: '6px',
+            padding: '8px 12px',
+            background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+            borderRadius: '14px',
+            border: '2px solid #22c55e',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '12px'
+            gap: '8px',
+            flexShrink: 0
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <CheckCircle2 size={36} color="#7c3aed" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckCircle2 size={24} color="#16a34a" />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#4c1d95' }}>
-                  Bé có tư duy logic thật xuất sắc! 🧠✨
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#14532d' }}>
+                  Bé tư duy logic xuất sắc quá! 🧠✨
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#7c3aed' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a' }}>
                   +1 Sao Vàng 🌟 &middot; +20 Xu 🪙
                 </div>
               </div>
             </div>
 
-            <button onClick={handleNextLevel} className="btn-kid btn-purple" style={{ padding: '10px 24px', fontSize: '16px' }}>
-              <span>Thử thách tiếp theo</span>
-              <Sparkles size={18} />
+            <button onClick={handleNextLevel} className="btn-kid btn-green" style={{ padding: '6px 14px', fontSize: '12.5px' }}>
+              <span>Câu tiếp theo</span>
+              <Sparkles size={14} />
             </button>
           </div>
         )}
@@ -323,3 +414,4 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
     </div>
   );
 }
+

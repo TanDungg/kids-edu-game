@@ -512,6 +512,78 @@ input, textarea {
   }
 }
 
+/* =========================================================
+   APP MAIN CONTENT WRAPPER & ZERO-SCROLL MOBILE GAMEPLAY
+   ========================================================= */
 
+.app-main-content {
+  position: relative;
+  z-index: 10;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 46px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
 
+@media (min-width: 641px) {
+  .app-main-content {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 64px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 30px);
+  }
+}
+
+.game-screen-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 50px);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 50px);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 4px 8px calc(env(safe-area-inset-bottom, 0px) + 4px) 8px;
+  box-sizing: border-box;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.game-card-compact {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(8px, 1.8vh, 18px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: var(--shadow-kid);
+  border: 3px solid #ffffff;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (min-width: 641px) {
+  .game-screen-wrapper {
+    height: auto;
+    max-height: none;
+    padding: 16px;
+    overflow: visible;
+  }
+
+  .game-card-compact {
+    border-radius: 28px;
+    border-width: 4px;
+    padding: 24px;
+    overflow: visible;
+  }
+}
+
+/* Shake Animation for incorrect choices */
+@keyframes shakeAnim {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shakeAnim 0.4s ease-in-out;
+}
 

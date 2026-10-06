@@ -96,61 +96,68 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: '800px' }}>
+    <div className="game-screen-wrapper">
       {/* Top Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '10px',
-        marginBottom: '16px'
+        gap: '6px',
+        marginBottom: '6px',
+        flexShrink: 0
       }}>
-        <button onClick={onBack} className="btn-kid btn-green" style={{ padding: '8px 14px', fontSize: '13px' }}>
-          <ArrowLeft size={16} />
+        <button onClick={onBack} className="btn-kid btn-green" style={{ padding: '5px 10px', fontSize: '11.5px', flexShrink: 0 }}>
+          <ArrowLeft size={14} />
           <span>Bản đồ</span>
         </button>
 
         <div style={{
           background: '#ecfdf5',
           color: '#047857',
-          padding: '5px 14px',
+          padding: '3px 10px',
           borderRadius: '999px',
           fontWeight: 800,
-          fontSize: '13px',
-          border: '2px solid #a7f3d0',
-          textAlign: 'center'
+          fontSize: '11px',
+          border: '1.5px solid #a7f3d0',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '65%'
         }}>
-          Màn {levelIndex + 1} / {mathLevels.length}: {currentLevel.title}
+          Màn {levelIndex + 1}/{mathLevels.length}: {currentLevel.title}
         </div>
 
-        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '8px 12px' }} title="Làm lại màn này">
-          <RefreshCw size={16} />
+        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Làm lại màn này">
+          <RefreshCw size={12} />
         </button>
       </div>
 
       {/* Main Farm Card */}
-      <div className="kid-card" style={{ padding: 'clamp(16px, 4vw, 32px)', textAlign: 'center', background: '#ffffff' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 4vw, 22px)', color: '#065f46', fontWeight: 800, marginBottom: '8px' }}>
-          {currentLevel.promptVN}
-        </h3>
-        <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600, marginBottom: '20px' }}>
-          {currentLevel.promptEN}
-        </p>
+      <div className="game-card-compact">
+        {/* Top Header */}
+        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 2.5vh, 18px)', color: '#065f46', fontWeight: 800, margin: '0 0 2px' }}>
+            {currentLevel.promptVN}
+          </h3>
+          <p style={{ color: '#64748b', fontSize: 'clamp(11px, 1.8vh, 13px)', fontWeight: 600, margin: '0 0 6px' }}>
+            {currentLevel.promptEN}
+          </p>
+        </div>
 
         {/* Level Type: COUNT (Tap items) */}
         {currentLevel.type === 'count' && (
-          <div>
+          <div style={{ flexShrink: 0, textAlign: 'center' }}>
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: 'clamp(8px, 2vw, 16px)',
+              gap: 'clamp(6px, 1.5vw, 12px)',
               flexWrap: 'wrap',
-              margin: '16px 0',
-              padding: 'clamp(14px, 3vw, 24px)',
+              margin: '4px 0',
+              padding: 'clamp(8px, 1.5vh, 14px)',
               background: '#f0fdf4',
-              borderRadius: '20px',
-              border: '3px dashed #86efac'
+              borderRadius: '16px',
+              border: '2px dashed #86efac'
             }}>
               {Array.from({ length: currentLevel.targetCount }).map((_, idx) => {
                 const isTapped = tappedItems.includes(idx);
@@ -160,30 +167,34 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
                     onClick={() => handleTapCountItem(idx)}
                     className="count-item-box"
                     style={{
+                      width: 'clamp(42px, 8.5vh, 60px)',
+                      height: 'clamp(42px, 8.5vh, 60px)',
+                      fontSize: 'clamp(22px, 4.5vh, 32px)',
                       background: isTapped ? '#bbf7d0' : '#ffffff',
-                      border: isTapped ? '3px solid #22c55e' : '3px solid #e2e8f0',
+                      border: isTapped ? '2.5px solid #22c55e' : '2px solid #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      transform: isTapped ? 'scale(1.1)' : 'scale(1)',
-                      boxShadow: isTapped ? '0 6px 0 #16a34a' : '0 4px 0 #cbd5e1',
+                      transform: isTapped ? 'scale(1.08)' : 'scale(1)',
+                      boxShadow: isTapped ? '0 4px 0 #16a34a' : '0 3px 0 #cbd5e1',
                       transition: 'all 0.15s ease',
-                      position: 'relative'
+                      position: 'relative',
+                      borderRadius: '12px'
                     }}
                   >
                     <span>{currentLevel.itemEmoji}</span>
                     {isTapped && (
                       <span style={{
                         position: 'absolute',
-                        top: '-8px',
-                        right: '-8px',
+                        top: '-6px',
+                        right: '-6px',
                         background: '#16a34a',
                         color: 'white',
-                        width: '24px',
-                        height: '24px',
+                        width: '18px',
+                        height: '18px',
                         borderRadius: '50%',
-                        fontSize: '12px',
+                        fontSize: '10px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -197,7 +208,7 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
               })}
             </div>
 
-            <div style={{ fontSize: '15px', color: '#16a34a', fontWeight: 800, marginBottom: '16px' }}>
+            <div style={{ fontSize: 'clamp(11px, 1.8vh, 13px)', color: '#16a34a', fontWeight: 800, margin: '2px 0 6px' }}>
               Bé đã đếm được: {tappedItems.length} {currentLevel.itemEmoji}
             </div>
           </div>
@@ -209,41 +220,42 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '16px',
-            margin: '20px 0',
+            gap: 'clamp(8px, 2vw, 14px)',
+            margin: '4px 0',
             flexWrap: 'wrap',
-            padding: '24px',
+            padding: 'clamp(8px, 1.5vh, 14px)',
             background: '#fefce8',
-            borderRadius: '24px',
-            border: '3px solid #fef08a'
+            borderRadius: '16px',
+            border: '2px solid #fef08a',
+            flexShrink: 0
           }}>
             {/* Group 1 */}
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '16px', border: '2px solid #facc15' }}>
-              <div style={{ fontSize: '32px' }}>{currentLevel.itemEmoji.repeat(currentLevel.num1)}</div>
-              <div style={{ fontWeight: 800, fontSize: '20px', color: '#854d0e', marginTop: '4px' }}>{currentLevel.num1}</div>
+            <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '12px', border: '2px solid #facc15', textAlign: 'center' }}>
+              <div style={{ fontSize: 'clamp(20px, 4.5vh, 28px)' }}>{currentLevel.itemEmoji.repeat(currentLevel.num1)}</div>
+              <div style={{ fontWeight: 800, fontSize: 'clamp(14px, 2.5vh, 18px)', color: '#854d0e', marginTop: '2px' }}>{currentLevel.num1}</div>
             </div>
 
-            <span style={{ fontSize: '36px', fontWeight: 900, color: '#ca8a04' }}>+</span>
+            <span style={{ fontSize: 'clamp(20px, 4.5vh, 28px)', fontWeight: 900, color: '#ca8a04' }}>+</span>
 
             {/* Group 2 */}
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '16px', border: '2px solid #facc15' }}>
-              <div style={{ fontSize: '32px' }}>{currentLevel.itemEmoji.repeat(currentLevel.num2)}</div>
-              <div style={{ fontWeight: 800, fontSize: '20px', color: '#854d0e', marginTop: '4px' }}>{currentLevel.num2}</div>
+            <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '12px', border: '2px solid #facc15', textAlign: 'center' }}>
+              <div style={{ fontSize: 'clamp(20px, 4.5vh, 28px)' }}>{currentLevel.itemEmoji.repeat(currentLevel.num2)}</div>
+              <div style={{ fontWeight: 800, fontSize: 'clamp(14px, 2.5vh, 18px)', color: '#854d0e', marginTop: '2px' }}>{currentLevel.num2}</div>
             </div>
 
-            <span style={{ fontSize: '36px', fontWeight: 900, color: '#ca8a04' }}>=</span>
+            <span style={{ fontSize: 'clamp(20px, 4.5vh, 28px)', fontWeight: 900, color: '#ca8a04' }}>=</span>
 
             {/* Question Mark */}
             <div style={{
-              width: '70px',
-              height: '70px',
-              borderRadius: '16px',
+              width: 'clamp(40px, 7vh, 52px)',
+              height: 'clamp(40px, 7vh, 52px)',
+              borderRadius: '12px',
               background: '#fef08a',
-              border: '3px dashed #ca8a04',
+              border: '2px dashed #ca8a04',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '32px',
+              fontSize: 'clamp(20px, 4vh, 26px)',
               fontWeight: 900,
               color: '#854d0e'
             }}>
@@ -257,36 +269,39 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: '24px',
-            margin: '24px 0',
-            flexWrap: 'wrap'
+            gap: 'clamp(8px, 2vw, 16px)',
+            margin: '4px 0',
+            flexWrap: 'wrap',
+            flexShrink: 0
           }}>
             <div style={{
               background: '#f0fdf4',
-              padding: '20px',
-              borderRadius: '20px',
-              border: '3px solid #86efac',
-              minWidth: '150px'
+              padding: '8px 12px',
+              borderRadius: '14px',
+              border: '2px solid #86efac',
+              minWidth: '120px',
+              textAlign: 'center'
             }}>
-              <div style={{ fontSize: '32px', minHeight: '48px' }}>
+              <div style={{ fontSize: 'clamp(20px, 4vh, 26px)' }}>
                 {currentLevel.sideA.emoji.repeat(currentLevel.sideA.count)}
               </div>
-              <div style={{ fontWeight: 800, color: '#16a34a', marginTop: '8px' }}>
+              <div style={{ fontWeight: 800, color: '#16a34a', marginTop: '4px', fontSize: '12px' }}>
                 Bên Trái: {currentLevel.sideA.count}
               </div>
             </div>
 
             <div style={{
               background: '#f0fdf4',
-              padding: '20px',
-              borderRadius: '20px',
-              border: '3px solid #86efac',
-              minWidth: '150px'
+              padding: '8px 12px',
+              borderRadius: '14px',
+              border: '2px solid #86efac',
+              minWidth: '120px',
+              textAlign: 'center'
             }}>
-              <div style={{ fontSize: '32px', minHeight: '48px' }}>
+              <div style={{ fontSize: 'clamp(20px, 4vh, 26px)' }}>
                 {currentLevel.sideB.emoji.repeat(currentLevel.sideB.count)}
               </div>
-              <div style={{ fontWeight: 800, color: '#16a34a', marginTop: '8px' }}>
+              <div style={{ fontWeight: 800, color: '#16a34a', marginTop: '4px', fontSize: '12px' }}>
                 Bên Phải: {currentLevel.sideB.count}
               </div>
             </div>
@@ -294,27 +309,44 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
         )}
 
         {/* Answer Options */}
-        <div style={{ marginTop: '20px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 800, color: '#334155', marginBottom: '10px' }}>
+        <div style={{ margin: '4px 0', flexShrink: 0, textAlign: 'center' }}>
+          <div style={{ fontSize: 'clamp(12px, 2vh, 13.5px)', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
             Bé hãy chọn đáp án đúng:
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {currentLevel.options.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleChooseOption(opt)}
-                className={`btn-kid ${selectedOption === opt && !isSuccess ? 'btn-pink' : 'btn-yellow'}`}
-                style={{
-                  minWidth: '70px',
-                  height: '48px',
-                  fontSize: '20px',
-                  borderRadius: '14px',
-                  padding: '6px 18px'
-                }}
-              >
-                {opt}
-              </button>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(6px, 1.8vw, 12px)', flexWrap: 'wrap' }}>
+            {currentLevel.options.map((opt, idx) => {
+              const isSelected = selectedOption === opt;
+              const isAnswerCorrect = String(opt) === String(currentLevel.answer);
+
+              let btnClass = 'btn-yellow';
+              if (isSuccess && isAnswerCorrect) {
+                btnClass = 'btn-green';
+              } else if (isSelected && !isSuccess) {
+                btnClass = 'btn-red animate-shake';
+              } else if (isSuccess) {
+                btnClass = 'btn-gray';
+              }
+
+              return (
+                <button
+                  key={idx}
+                  disabled={isSuccess}
+                  onClick={() => handleChooseOption(opt)}
+                  className={`btn-kid ${btnClass}`}
+                  style={{
+                    minWidth: 'clamp(56px, 15vw, 72px)',
+                    height: 'clamp(38px, 6vh, 46px)',
+                    fontSize: 'clamp(16px, 2.8vh, 20px)',
+                    borderRadius: '12px',
+                    padding: '2px 12px',
+                    fontWeight: 900
+                  }}
+                >
+                  {opt}
+                  {isSuccess && isAnswerCorrect && ' ✓'}
+                </button>
+              );
+            })}
           </div>
 
           {/* Explicit Wrong Feedback */}
@@ -323,14 +355,14 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
               background: '#fef2f2',
               border: '1.5px solid #fecaca',
               color: '#b91c1c',
-              padding: '8px 14px',
-              borderRadius: '12px',
-              fontSize: '12.5px',
+              padding: '4px 10px',
+              borderRadius: '10px',
+              fontSize: '11.5px',
               fontWeight: 800,
-              marginTop: '12px',
+              marginTop: '6px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '4px'
             }}>
               <span>❌</span>
               <span>{wrongMsg}</span>
@@ -341,32 +373,33 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
         {/* Win Banner */}
         {isSuccess && (
           <div className="animate-pop-in" style={{
-            marginTop: '28px',
-            padding: '20px',
+            marginTop: '6px',
+            padding: '8px 12px',
             background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-            borderRadius: '20px',
-            border: '3px solid #22c55e',
+            borderRadius: '14px',
+            border: '2px solid #22c55e',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '12px'
+            gap: '8px',
+            flexShrink: 0
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <CheckCircle2 size={36} color="#16a34a" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckCircle2 size={24} color="#16a34a" />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#14532d' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#14532d' }}>
                   Chính xác rồi! Bé tính toán siêu quá! 🌟
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#16a34a' }}>
-                  +1 Sao Vàng 🌟 &middot; +15 Xu 🪙
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a' }}>
+                  +1 Sao 🌟 &middot; +15 Xu 🪙
                 </div>
               </div>
             </div>
 
-            <button onClick={handleNextLevel} className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '16px' }}>
+            <button onClick={handleNextLevel} className="btn-kid btn-green" style={{ padding: '6px 14px', fontSize: '12.5px' }}>
               <span>Câu tiếp theo</span>
-              <Sparkles size={18} />
+              <Sparkles size={14} />
             </button>
           </div>
         )}
