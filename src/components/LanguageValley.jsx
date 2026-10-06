@@ -24,6 +24,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   const [scrambledLetters, setScrambledLetters] = useState([]);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [wrongMsg, setWrongMsg] = useState('');
 
   useEffect(() => {
     return dataManager.subscribe(() => {
@@ -38,16 +39,19 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     ? (wordsList[levelIndex % wordsList.length] || wordsList[0]) 
     : DEFAULT_WORDS[0];
 
-  const getCleanTarget = (lvl, currentMode) => {
-    if (!lvl) return 'MÈO';
+  // Parse words cleanly into words array to support multi-word expressions (e.g. ['CON', 'MÈO'])
+  const getCleanTargetWords = (lvl, currentMode) => {
+    if (!lvl) return ['MÈO'];
     let raw = currentMode === 'VN' 
       ? (lvl.targetVN || lvl.target_vn || lvl.vn || '') 
       : (lvl.targetEN || lvl.target_en || lvl.en || '');
-    const clean = String(raw).toUpperCase().replace(/\s+/g, '');
-    return clean || (currentMode === 'VN' ? 'MÈO' : 'CAT');
+    const words = String(raw).toUpperCase().trim().split(/\s+/).filter(Boolean);
+    return words.length > 0 ? words : [currentMode === 'VN' ? 'MÈO' : 'CAT'];
   };
 
-  const targetWord = getCleanTarget(currentLevel, mode);
+  const targetWords = getCleanTargetWords(currentLevel, mode);
+  const targetWord = targetWords.join('');
+  const totalLetters = targetWord.length;
 
   // Setup scrambled letters when level changes or mode changes
   useEffect(() => {
@@ -59,6 +63,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   const resetPuzzle = () => {
     if (!targetWord) return;
     setIsSuccess(false);
+    setWrongMsg('');
     setCurrentGuess([]);
     setShowHint(false);
 
@@ -77,32 +82,40 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
       }
     }
 
-    // Combine and shuffle thoroughly
+    // Combine and shuffle with fixed static slots
     const combined = [...letters, ...distractors];
     const shuffled = shuffleArray(
-      combined.map((char, index) => ({ char, id: `${char}_${index}_${Math.random()}` }))
+      combined.map((char, index) => ({ 
+        char, 
+        id: `${char}_${index}_${Math.random()}`,
+        isUsed: false 
+      }))
     );
 
     setScrambledLetters(shuffled);
   };
 
   const handlePickLetter = (item) => {
-    if (isSuccess) return;
+    if (isSuccess || item.isUsed) return;
     sounds.playClick();
+    setWrongMsg('');
 
     // Check if adding this letter fits the length
-    if (currentGuess.length < targetWord.length) {
+    if (currentGuess.length < totalLetters) {
       const nextGuess = [...currentGuess, item];
       setCurrentGuess(nextGuess);
-      setScrambledLetters(scrambledLetters.filter(i => i.id !== item.id));
+      
+      // Mark as used in scrambledLetters WITHOUT shifting or re-sorting remaining letters
+      setScrambledLetters(prev => prev.map(l => l.id === item.id ? { ...l, isUsed: true } : l));
 
       // If word is complete, check answer
-      if (nextGuess.length === targetWord.length) {
+      if (nextGuess.length === totalLetters) {
         const guessedString = nextGuess.map(i => i.char).join('');
         if (guessedString === targetWord) {
           handleWin();
         } else {
           sounds.playError();
+          setWrongMsg('Chưa chính xác rồi bé ơi! Bé bấm vào ô chữ màu đỏ để sửa lại nhé! ❌');
         }
       }
     }
@@ -111,13 +124,19 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   const handleRemoveLetter = (indexToRemove) => {
     if (isSuccess) return;
     sounds.playClick();
+    setWrongMsg('');
     const removedItem = currentGuess[indexToRemove];
     setCurrentGuess(currentGuess.filter((_, idx) => idx !== indexToRemove));
-    setScrambledLetters([...scrambledLetters, removedItem]);
+    
+    // Put letter back at its EXACT original spot
+    if (removedItem) {
+      setScrambledLetters(prev => prev.map(l => l.id === removedItem.id ? { ...l, isUsed: false } : l));
+    }
   };
 
   const handleWin = () => {
     setIsSuccess(true);
+    setWrongMsg('');
     sounds.playSuccess();
     sounds.playCheer();
     sounds.playStar();
@@ -169,18 +188,21 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     );
   }
 
+  // Global slot counter for multi-word groupings
+  let currentSlotIndexTracker = 0;
+
   return (
-    <div className="page-container" style={{ maxWidth: '800px' }}>
+    <div className="page-container" style={{ maxWidth: '750px' }}>
       {/* Top Bar - Clean Responsive Single-Line Controls */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '6px',
-        marginBottom: '14px'
+        marginBottom: '10px'
       }}>
-        <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '7px 12px', fontSize: '13px', flexShrink: 0 }}>
-          <ArrowLeft size={16} />
+        <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}>
+          <ArrowLeft size={15} />
           <span>Bản đồ</span>
         </button>
 
@@ -193,7 +215,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           borderRadius: '999px',
           border: '2px solid #e2e8f0',
           boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-          height: '36px',
+          height: '32px',
           boxSizing: 'border-box'
         }}>
           <button
@@ -202,9 +224,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '4px 10px',
+              padding: '3px 9px',
               borderRadius: '999px',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'inherit',
               transition: 'all 0.2s ease',
@@ -225,9 +247,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '4px 10px',
+              padding: '3px 9px',
               borderRadius: '999px',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'inherit',
               transition: 'all 0.2s ease',
@@ -245,11 +267,11 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
         </div>
 
         {/* Progress Pill & Reshuffle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <div style={{
             background: '#fdf2f8',
             color: '#db2777',
-            padding: '5px 9px',
+            padding: '4px 8px',
             borderRadius: '999px',
             fontWeight: 800,
             fontSize: '11px',
@@ -258,177 +280,228 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           }}>
             {levelIndex + 1}/{wordsList.length}
           </div>
-          <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '7px 10px' }} title="Xáo trộn lại câu hỏi">
-            <RefreshCw size={14} />
+          <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '6px 8px' }} title="Xáo trộn lại câu hỏi">
+            <RefreshCw size={13} />
           </button>
         </div>
       </div>
 
-      {/* Main Flashcard */}
-      <div className="kid-card" style={{ padding: 'clamp(14px, 3.5vw, 28px)', textAlign: 'center', background: '#ffffff', position: 'relative' }}>
+      {/* Main Flashcard - Compact single-screen layout */}
+      <div className="kid-card" style={{ padding: 'clamp(10px, 3vw, 20px)', textAlign: 'center', background: '#ffffff', position: 'relative' }}>
         {/* Mascot & Theme */}
-        <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '4px 14px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '12px', marginBottom: '6px' }}>
+        <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '3px 12px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '11px', marginBottom: '4px' }}>
           Chủ đề: {currentLevel.theme}
         </div>
 
-        <div style={{ fontSize: 'clamp(60px, 14vw, 92px)', margin: '2px 0' }} className="animate-bounce-slow">
+        <div style={{ fontSize: 'clamp(48px, 12vw, 76px)', margin: '2px 0' }} className="animate-bounce-slow">
           {currentLevel.emoji}
         </div>
 
         {/* Prompt */}
-        <p style={{ color: '#334155', fontSize: 'clamp(14px, 3.2vw, 17px)', fontWeight: 800, margin: '8px 0 16px' }}>
+        <p style={{ color: '#334155', fontSize: 'clamp(13px, 3vw, 15px)', fontWeight: 800, margin: '4px 0 12px' }}>
           {mode === 'VN' 
             ? 'Bé nhìn hình đoán xem đây là gì và ghép chữ nhé!' 
             : 'Look at the picture and tap the letters to spell!'}
         </p>
 
-        {/* Word Target Slots - Always 1 Clean Centered Row */}
+        {/* Word Target Slots - Grouped by Word for Proper Line Breaking */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 'clamp(3px, 1.2vw, 8px)',
-          marginBottom: '20px',
-          flexWrap: 'nowrap',
+          gap: 'clamp(6px, 2vw, 12px)',
+          marginBottom: '12px',
+          flexWrap: 'wrap',
           width: '100%',
-          overflowX: 'auto',
-          padding: '4px 2px',
           boxSizing: 'border-box'
         }}>
-          {Array.from({ length: targetWord.length }).map((_, idx) => {
-            const filled = currentGuess[idx];
-            // Dynamic slot size so long words (like AIRPLANE, WATERMELON) fit 100% on one line on any screen
-            const slotWidth = Math.max(28, Math.min(52, Math.floor(320 / Math.max(targetWord.length, 5))));
-            const slotHeight = Math.round(slotWidth * 1.25);
-            const slotFont = Math.round(slotWidth * 0.55);
-            const slotRadius = Math.round(slotWidth * 0.25);
+          {targetWords.map((word, wIdx) => (
+            <div key={wIdx} style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'clamp(2.5px, 1vw, 6px)',
+              background: targetWords.length > 1 ? '#f8fafc' : 'transparent',
+              padding: targetWords.length > 1 ? '3px 6px' : 0,
+              borderRadius: '12px',
+              border: targetWords.length > 1 ? '1.5px dashed #cbd5e1' : 'none'
+            }}>
+              {word.split('').map((_, cIdx) => {
+                const slotIndex = currentSlotIndexTracker++;
+                const filled = currentGuess[slotIndex];
+                const slotWidth = Math.max(28, Math.min(46, Math.floor(260 / Math.max(word.length, 4))));
+                const slotHeight = Math.round(slotWidth * 1.2);
+                const slotFont = Math.round(slotWidth * 0.55);
 
-            return (
-              <div
-                key={idx}
-                onClick={() => filled && handleRemoveLetter(idx)}
-                style={{
-                  width: `${slotWidth}px`,
-                  height: `${slotHeight}px`,
-                  fontSize: `${slotFont}px`,
-                  borderRadius: `${slotRadius}px`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 900,
-                  border: filled ? '2.5px solid #ec4899' : '2px dashed #cbd5e1',
-                  background: filled ? '#fdf2f8' : '#f8fafc',
-                  color: '#be185d',
-                  cursor: filled ? 'pointer' : 'default',
-                  boxShadow: filled ? '0 3px 0 #db2777' : 'none',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                  userSelect: 'none'
-                }}
-              >
-                {filled ? filled.char : ''}
-              </div>
-            );
-          })}
+                return (
+                  <div
+                    key={cIdx}
+                    onClick={() => filled && handleRemoveLetter(slotIndex)}
+                    style={{
+                      width: `${slotWidth}px`,
+                      height: `${slotHeight}px`,
+                      fontSize: `${slotFont}px`,
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 900,
+                      border: filled ? (wrongMsg ? '2px solid #ef4444' : '2.5px solid #ec4899') : '2px dashed #cbd5e1',
+                      background: filled ? (wrongMsg ? '#fef2f2' : '#fdf2f8') : '#f8fafc',
+                      color: wrongMsg ? '#b91c1c' : '#be185d',
+                      cursor: filled ? 'pointer' : 'default',
+                      boxShadow: filled ? (wrongMsg ? '0 2px 0 #dc2626' : '0 2px 0 #db2777') : 'none',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {filled ? filled.char : ''}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
-        {/* Scrambled Letter Options to Pick */}
+        {/* Scrambled Letter Options to Pick - STATIC FIXED SLOTS (Never jump around) */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'clamp(6px, 1.8vw, 10px)',
+          gap: 'clamp(4px, 1.2vw, 8px)',
           flexWrap: 'wrap',
-          maxWidth: '440px',
+          maxWidth: '420px',
           margin: '0 auto',
-          minHeight: '48px'
+          minHeight: '44px'
         }}>
           {scrambledLetters.map((item) => (
-            <button
+            <div 
               key={item.id}
-              onClick={() => handlePickLetter(item)}
-              className="btn-kid btn-yellow"
               style={{
-                width: 'clamp(38px, 9.2vw, 50px)',
-                height: 'clamp(42px, 10.5vw, 54px)',
-                fontSize: 'clamp(18px, 4.5vw, 24px)',
-                fontWeight: 900,
-                borderRadius: '12px',
-                padding: 0
+                width: 'clamp(34px, 8.5vw, 44px)',
+                height: 'clamp(38px, 9.5vw, 48px)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              {item.char}
-            </button>
+              {item.isUsed ? (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '10px',
+                  border: '1.5px dashed #e2e8f0',
+                  background: 'rgba(241, 245, 249, 0.6)'
+                }} />
+              ) : (
+                <button
+                  onClick={() => handlePickLetter(item)}
+                  className="btn-kid btn-yellow animate-pop-in"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    fontSize: 'clamp(16px, 4vw, 20px)',
+                    fontWeight: 900,
+                    borderRadius: '10px',
+                    padding: 0
+                  }}
+                >
+                  {item.char}
+                </button>
+              )}
+            </div>
           ))}
         </div>
+
+        {/* Clear Wrong Feedback Message */}
+        {wrongMsg && (
+          <div className="animate-shake" style={{
+            background: '#fef2f2',
+            border: '1.5px solid #fecaca',
+            color: '#b91c1c',
+            padding: '6px 12px',
+            borderRadius: '10px',
+            fontSize: '12px',
+            fontWeight: 800,
+            marginTop: '8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span>❌</span>
+            <span>{wrongMsg}</span>
+          </div>
+        )}
 
         {/* Success Modal: REVEAL WORD & PRONUNCIATION BUTTONS ONLY AFTER SOLVED */}
         {isSuccess && (
           <div className="animate-pop-in" style={{
-            marginTop: '28px',
-            padding: '24px',
+            marginTop: '14px',
+            padding: '14px',
             background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-            borderRadius: '24px',
-            border: '3px solid #22c55e',
+            borderRadius: '18px',
+            border: '2px solid #22c55e',
             textAlign: 'center'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-              <CheckCircle2 size={32} color="#16a34a" />
-              <span style={{ fontSize: '22px', fontWeight: 900, color: '#14532d' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '4px' }}>
+              <CheckCircle2 size={24} color="#16a34a" />
+              <span style={{ fontSize: '17px', fontWeight: 900, color: '#14532d' }}>
                 Chính xác! Bé giỏi quá! 🎉
               </span>
             </div>
 
-            <p style={{ fontSize: '15px', color: '#166534', fontWeight: 700, marginBottom: '16px' }}>
+            <p style={{ fontSize: '12.5px', color: '#166534', fontWeight: 700, marginBottom: '10px' }}>
               Bé hãy bấm vào loa để nghe và đọc theo phát âm chuẩn nhé:
             </p>
 
             {/* Clickable Pronunciation Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
               <button 
                 onClick={handleSpeakVN} 
                 className="btn-kid btn-pink" 
-                style={{ padding: '12px 24px', fontSize: '18px' }}
+                style={{ padding: '8px 16px', fontSize: '13.5px' }}
               >
-                <Volume2 size={24} />
-                <span>🇻🇳 {currentLevel.vn} (Nghe)</span>
+                <Volume2 size={18} />
+                <span>🇻🇳 {currentLevel.vn}</span>
               </button>
               <button 
                 onClick={handleSpeakEN} 
                 className="btn-kid btn-blue" 
-                style={{ padding: '12px 24px', fontSize: '18px' }}
+                style={{ padding: '8px 16px', fontSize: '13.5px' }}
               >
-                <Volume2 size={24} />
-                <span>🇬🇧 {currentLevel.en} (Listen)</span>
+                <Volume2 size={18} />
+                <span>🇬🇧 {currentLevel.en}</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: '#15803d' }}>
-                +1 Sao Vàng 🌟 &middot; +15 Xu 🪙
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#15803d' }}>
+                +1 Sao 🌟 &middot; +15 Xu 🪙
               </span>
-              <button onClick={handleNextWord} className="btn-kid btn-green" style={{ padding: '10px 24px', fontSize: '16px' }}>
+              <button onClick={handleNextWord} className="btn-kid btn-green" style={{ padding: '8px 18px', fontSize: '13.5px' }}>
                 <span>Từ tiếp theo</span>
-                <Sparkles size={18} />
+                <Sparkles size={15} />
               </button>
             </div>
           </div>
         )}
 
         {/* Hint Section */}
-        <div style={{ marginTop: '20px' }}>
-          <button 
-            onClick={() => setShowHint(!showHint)}
-            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <HelpCircle size={14} />
-            {showHint ? 'Ẩn gợi ý' : 'Bé cần gợi ý không?'}
-          </button>
-          {showHint && (
-            <div style={{ marginTop: '6px', fontSize: '14px', color: '#0369a1', background: '#f0f9ff', padding: '8px 16px', borderRadius: '12px', display: 'inline-block' }}>
-              💡 {mode === 'VN' ? (currentLevel.hintVN || currentLevel.hint_vn || `Đây là từ "${currentLevel.vn}"`) : (currentLevel.hintEN || currentLevel.hint_en || `This is "${currentLevel.en}"`)}
-            </div>
-          )}
-        </div>
+        {!isSuccess && (
+          <div style={{ marginTop: '10px' }}>
+            <button 
+              onClick={() => setShowHint(!showHint)}
+              style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <HelpCircle size={13} />
+              {showHint ? 'Ẩn gợi ý' : 'Bé cần gợi ý không?'}
+            </button>
+            {showHint && (
+              <div style={{ marginTop: '4px', fontSize: '12.5px', color: '#0369a1', background: '#f0f9ff', padding: '6px 12px', borderRadius: '10px', display: 'inline-block' }}>
+                💡 {mode === 'VN' ? (currentLevel.hintVN || currentLevel.hint_vn || `Đây là từ "${currentLevel.vn}"`) : (currentLevel.hintEN || currentLevel.hint_en || `This is "${currentLevel.en}"`)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

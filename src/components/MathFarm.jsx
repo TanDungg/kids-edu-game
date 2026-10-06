@@ -10,6 +10,7 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
   const [tappedItems, setTappedItems] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [wrongMsg, setWrongMsg] = useState('');
 
   useEffect(() => {
     return dataManager.subscribe(() => {
@@ -30,6 +31,7 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
     setTappedItems([]);
     setSelectedOption(null);
     setIsSuccess(false);
+    setWrongMsg('');
     if (currentLevel.promptVN) {
       sounds.speak(currentLevel.promptVN, 'vi-VN');
     }
@@ -49,6 +51,7 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
 
     if (String(opt) === String(currentLevel.answer)) {
       setIsSuccess(true);
+      setWrongMsg('');
       sounds.playSuccess();
       sounds.playCheer();
       sounds.playStar();
@@ -60,6 +63,7 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
       onCompleteLevel('math', { correct: true, starsEarned: 1, coinsEarned: 15 });
     } else {
       sounds.playError();
+      setWrongMsg(`Chưa đúng rồi bé ơi! ${opt} chưa phải đáp án chính xác, bé thử chọn lại nhé! ❌`);
       sounds.speak('Bé thử chọn lại xem nào!', 'vi-VN');
     }
   };
@@ -290,28 +294,48 @@ export default function MathFarm({ onBack, onCompleteLevel }) {
         )}
 
         {/* Answer Options */}
-        <div style={{ marginTop: '24px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 800, color: '#334155', marginBottom: '12px' }}>
+        <div style={{ marginTop: '20px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: '#334155', marginBottom: '10px' }}>
             Bé hãy chọn đáp án đúng:
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {currentLevel.options.map((opt, idx) => (
               <button
                 key={idx}
                 onClick={() => handleChooseOption(opt)}
                 className={`btn-kid ${selectedOption === opt && !isSuccess ? 'btn-pink' : 'btn-yellow'}`}
                 style={{
-                  minWidth: '80px',
-                  height: '56px',
-                  fontSize: '22px',
-                  borderRadius: '16px',
-                  padding: '8px 24px'
+                  minWidth: '70px',
+                  height: '48px',
+                  fontSize: '20px',
+                  borderRadius: '14px',
+                  padding: '6px 18px'
                 }}
               >
                 {opt}
               </button>
             ))}
           </div>
+
+          {/* Explicit Wrong Feedback */}
+          {wrongMsg && (
+            <div className="animate-shake" style={{
+              background: '#fef2f2',
+              border: '1.5px solid #fecaca',
+              color: '#b91c1c',
+              padding: '8px 14px',
+              borderRadius: '12px',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              marginTop: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span>❌</span>
+              <span>{wrongMsg}</span>
+            </div>
+          )}
         </div>
 
         {/* Win Banner */}

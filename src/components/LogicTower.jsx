@@ -9,6 +9,7 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
   const [levelIndex, setLevelIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [wrongMsg, setWrongMsg] = useState('');
 
   useEffect(() => {
     return dataManager.subscribe(() => {
@@ -28,6 +29,7 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
     if (!currentLevel) return;
     setSelectedOption(null);
     setIsSuccess(false);
+    setWrongMsg('');
     if (currentLevel.promptVN) {
       sounds.speak(currentLevel.promptVN, 'vi-VN');
     }
@@ -39,6 +41,7 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
 
     if (String(opt) === String(currentLevel.answer)) {
       setIsSuccess(true);
+      setWrongMsg('');
       sounds.playSuccess();
       sounds.playCheer();
       sounds.playStar();
@@ -50,6 +53,7 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
       onCompleteLevel('logic', { correct: true, starsEarned: 1, coinsEarned: 20 });
     } else {
       sounds.playError();
+      setWrongMsg(`Chưa đúng quy luật rồi bé ơi! ${opt} chưa phải hình còn thiếu, bé quan sát kỹ lại nhé! ❌`);
       sounds.speak('Chưa đúng rồi, bé hãy thử nghĩ lại xem nào!', 'vi-VN');
     }
   };
@@ -238,21 +242,21 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
 
         {/* Pattern Options Pick Buttons */}
         {currentLevel.type === 'pattern' && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ fontSize: '15px', fontWeight: 800, color: '#334155', marginBottom: '12px' }}>
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: '#334155', marginBottom: '10px' }}>
               Bé hãy chọn hình còn thiếu:
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {currentLevel.options.map((opt, idx) => (
                 <button
                   key={idx}
                   onClick={() => handlePickOption(opt)}
                   className="btn-kid btn-yellow"
                   style={{
-                    width: '64px',
-                    height: '64px',
-                    fontSize: '28px',
-                    borderRadius: '16px',
+                    width: '56px',
+                    height: '56px',
+                    fontSize: '26px',
+                    borderRadius: '14px',
                     padding: 0
                   }}
                 >
@@ -260,6 +264,26 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Explicit Wrong Feedback */}
+        {wrongMsg && (
+          <div className="animate-shake" style={{
+            background: '#fef2f2',
+            border: '1.5px solid #fecaca',
+            color: '#b91c1c',
+            padding: '8px 14px',
+            borderRadius: '12px',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            marginTop: '12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span>❌</span>
+            <span>{wrongMsg}</span>
           </div>
         )}
 

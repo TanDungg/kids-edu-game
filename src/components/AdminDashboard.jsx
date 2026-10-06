@@ -14,6 +14,64 @@ import { sounds } from '../utils/sound';
 import { autoDetectEmoji } from '../utils/emojiDetector';
 import { supabaseService } from '../services/supabase';
 
+function PaginationControl({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+  if (totalPages <= 1) return null;
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '8px',
+      marginTop: '14px',
+      paddingTop: '12px',
+      borderTop: '1px solid #e2e8f0',
+      fontSize: '12px',
+      color: '#64748b'
+    }}>
+      <div style={{ fontWeight: 600 }}>
+        Hiển thị <span style={{ color: '#1e293b', fontWeight: 800 }}>{startItem} - {endItem}</span> trên tổng số <span style={{ color: '#1e293b', fontWeight: 800 }}>{totalItems}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => { sounds.playClick(); onPageChange(currentPage - 1); }}
+          className="btn-kid btn-blue"
+          style={{
+            padding: '4px 10px',
+            fontSize: '11.5px',
+            opacity: currentPage === 1 ? 0.4 : 1,
+            cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+          }}
+        >
+          ◀ Trước
+        </button>
+        <span style={{ fontWeight: 800, color: '#1e293b', padding: '0 4px' }}>
+          Trang {currentPage} / {totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => { sounds.playClick(); onPageChange(currentPage + 1); }}
+          className="btn-kid btn-blue"
+          style={{
+            padding: '4px 10px',
+            fontSize: '11.5px',
+            opacity: currentPage === totalPages ? 0.4 : 1,
+            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+          }}
+        >
+          Sau ▶
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard({ 
   onBack, 
   onDataChanged, 
@@ -140,13 +198,89 @@ export default function AdminDashboard({
     });
   }, [cloudUsers, userRoleFilter, userSearchTerm]);
 
-  // Table Filters & Search
+  // Table Filters, Search & Pagination
+  const ITEMS_PER_PAGE = 10;
   const [vocabSearch, setVocabSearch] = useState('');
   const [vocabThemeFilter, setVocabThemeFilter] = useState('all');
+  const [vocabPage, setVocabPage] = useState(1);
+
   const [mathSearch, setMathSearch] = useState('');
   const [mathTypeFilter, setMathTypeFilter] = useState('all');
+  const [mathPage, setMathPage] = useState(1);
+
   const [logicSearch, setLogicSearch] = useState('');
   const [logicTypeFilter, setLogicTypeFilter] = useState('all');
+  const [logicPage, setLogicPage] = useState(1);
+
+  const [userPage, setUserPage] = useState(1);
+
+  // Filtered and Paginated Vocab
+  const filteredWords = React.useMemo(() => {
+    return words.filter(w => {
+      const matchS = !vocabSearch || w.vn.toLowerCase().includes(vocabSearch.toLowerCase()) || w.en.toLowerCase().includes(vocabSearch.toLowerCase());
+      const matchT = vocabThemeFilter === 'all' || w.theme === vocabThemeFilter;
+      return matchS && matchT;
+    });
+  }, [words, vocabSearch, vocabThemeFilter]);
+
+  const totalVocabPages = Math.ceil(filteredWords.length / ITEMS_PER_PAGE) || 1;
+  const pagedWords = React.useMemo(() => {
+    const start = (vocabPage - 1) * ITEMS_PER_PAGE;
+    return filteredWords.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredWords, vocabPage]);
+
+  React.useEffect(() => {
+    setVocabPage(1);
+  }, [vocabSearch, vocabThemeFilter]);
+
+  // Filtered and Paginated Math
+  const filteredMath = React.useMemo(() => {
+    return mathLevels.filter(m => {
+      const matchS = !mathSearch || m.title?.toLowerCase().includes(mathSearch.toLowerCase()) || m.promptVN?.toLowerCase().includes(mathSearch.toLowerCase());
+      const matchT = mathTypeFilter === 'all' || m.type === mathTypeFilter;
+      return matchS && matchT;
+    });
+  }, [mathLevels, mathSearch, mathTypeFilter]);
+
+  const totalMathPages = Math.ceil(filteredMath.length / ITEMS_PER_PAGE) || 1;
+  const pagedMath = React.useMemo(() => {
+    const start = (mathPage - 1) * ITEMS_PER_PAGE;
+    return filteredMath.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredMath, mathPage]);
+
+  React.useEffect(() => {
+    setMathPage(1);
+  }, [mathSearch, mathTypeFilter]);
+
+  // Filtered and Paginated Logic
+  const filteredLogic = React.useMemo(() => {
+    return logicLevels.filter(l => {
+      const matchS = !logicSearch || l.title?.toLowerCase().includes(logicSearch.toLowerCase()) || l.promptVN?.toLowerCase().includes(logicSearch.toLowerCase());
+      const matchT = logicTypeFilter === 'all' || l.type === logicTypeFilter;
+      return matchS && matchT;
+    });
+  }, [logicLevels, logicSearch, logicTypeFilter]);
+
+  const totalLogicPages = Math.ceil(filteredLogic.length / ITEMS_PER_PAGE) || 1;
+  const pagedLogic = React.useMemo(() => {
+    const start = (logicPage - 1) * ITEMS_PER_PAGE;
+    return filteredLogic.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredLogic, logicPage]);
+
+  React.useEffect(() => {
+    setLogicPage(1);
+  }, [logicSearch, logicTypeFilter]);
+
+  // Filtered and Paginated Users
+  const totalUserPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE) || 1;
+  const pagedUsers = React.useMemo(() => {
+    const start = (userPage - 1) * ITEMS_PER_PAGE;
+    return filteredUsers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredUsers, userPage]);
+
+  React.useEffect(() => {
+    setUserPage(1);
+  }, [userRoleFilter, userSearchTerm]);
 
   // Batch Generator Modal & Smart Creation States
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -1609,7 +1743,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   Bảng Dữ Liệu Từ Vựng & Ngôn Ngữ
                 </h3>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  Hiển thị {words.filter(w => (!vocabSearch || w.vn.toLowerCase().includes(vocabSearch.toLowerCase()) || w.en.toLowerCase().includes(vocabSearch.toLowerCase())) && (vocabThemeFilter === 'all' || w.theme === vocabThemeFilter)).length} / {words.length} từ vựng
+                  Hiển thị {filteredWords.length} / {words.length} từ vựng {totalVocabPages > 1 && `(Trang ${vocabPage}/${totalVocabPages})`}
                 </span>
               </div>
 
@@ -1670,20 +1804,16 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   </tr>
                 </thead>
                 <tbody>
-                  {words
-                    .filter(w => {
-                      const matchS = !vocabSearch || w.vn.toLowerCase().includes(vocabSearch.toLowerCase()) || w.en.toLowerCase().includes(vocabSearch.toLowerCase());
-                      const matchT = vocabThemeFilter === 'all' || w.theme === vocabThemeFilter;
-                      return matchS && matchT;
-                    })
-                    .map((item, index) => (
+                  {pagedWords.map((item, index) => (
                       <tr 
                         key={item.id || index}
                         style={{ borderBottom: '1px solid #f1f5f9' }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>
+                          {(vocabPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '24px' }}>
                           <span style={{ display: 'inline-block', width: '38px', height: '38px', lineHeight: '38px', background: '#f1f5f9', borderRadius: '10px' }}>
                             {item.emoji}
@@ -1744,9 +1874,24 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                         </td>
                       </tr>
                     ))}
+                  {pagedWords.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                        Không tìm thấy từ vựng nào phù hợp với bộ lọc!
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <PaginationControl
+              currentPage={vocabPage}
+              totalPages={totalVocabPages}
+              onPageChange={setVocabPage}
+              totalItems={filteredWords.length}
+              pageSize={ITEMS_PER_PAGE}
+            />
           </div>
         </div>
       )}
@@ -1890,7 +2035,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   Bảng Dữ Liệu Câu Hỏi Toán Học
                 </h3>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  Hiển thị {mathLevels.filter(m => (!mathSearch || m.title?.toLowerCase().includes(mathSearch.toLowerCase()) || m.promptVN?.toLowerCase().includes(mathSearch.toLowerCase())) && (mathTypeFilter === 'all' || m.type === mathTypeFilter)).length} / {mathLevels.length} câu hỏi
+                  Hiển thị {filteredMath.length} / {mathLevels.length} câu hỏi {totalMathPages > 1 && `(Trang ${mathPage}/${totalMathPages})`}
                 </span>
               </div>
 
@@ -1900,7 +2045,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
-                    placeholder="Tìm kiếm câu hỏi toán..."
+                    placeholder="Tìm kiếm bài toán..."
                     value={mathSearch}
                     onChange={(e) => setMathSearch(e.target.value)}
                     style={{
@@ -1948,20 +2093,16 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   </tr>
                 </thead>
                 <tbody>
-                  {mathLevels
-                    .filter(m => {
-                      const matchS = !mathSearch || m.title?.toLowerCase().includes(mathSearch.toLowerCase()) || m.promptVN?.toLowerCase().includes(mathSearch.toLowerCase());
-                      const matchT = mathTypeFilter === 'all' || m.type === mathTypeFilter;
-                      return matchS && matchT;
-                    })
-                    .map((item, index) => (
+                  {pagedMath.map((item, index) => (
                       <tr 
                         key={item.id || index}
                         style={{ borderBottom: '1px solid #f1f5f9' }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>
+                          {(mathPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{
                             background: item.type === 'count' ? '#fef3c7' : item.type === 'addition' ? '#ecfdf5' : '#ede9fe',
@@ -2011,9 +2152,24 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                         </td>
                       </tr>
                     ))}
+                  {pagedMath.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                        Không tìm thấy câu hỏi Toán nào phù hợp với bộ lọc!
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <PaginationControl
+              currentPage={mathPage}
+              totalPages={totalMathPages}
+              onPageChange={setMathPage}
+              totalItems={filteredMath.length}
+              pageSize={ITEMS_PER_PAGE}
+            />
           </div>
         </div>
       )}
@@ -2115,7 +2271,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   Bảng Dữ Liệu Câu Đố Tư Duy Logic
                 </h3>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  Hiển thị {logicLevels.filter(l => (!logicSearch || l.title?.toLowerCase().includes(logicSearch.toLowerCase()) || l.promptVN?.toLowerCase().includes(logicSearch.toLowerCase())) && (logicTypeFilter === 'all' || l.type === logicTypeFilter)).length} / {logicLevels.length} câu đố
+                  Hiển thị {filteredLogic.length} / {logicLevels.length} câu đố {totalLogicPages > 1 && `(Trang ${logicPage}/${totalLogicPages})`}
                 </span>
               </div>
 
@@ -2172,20 +2328,16 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   </tr>
                 </thead>
                 <tbody>
-                  {logicLevels
-                    .filter(l => {
-                      const matchS = !logicSearch || l.title?.toLowerCase().includes(logicSearch.toLowerCase()) || l.promptVN?.toLowerCase().includes(logicSearch.toLowerCase());
-                      const matchT = logicTypeFilter === 'all' || l.type === logicTypeFilter;
-                      return matchS && matchT;
-                    })
-                    .map((item, index) => (
+                  {pagedLogic.map((item, index) => (
                       <tr 
                         key={item.id || index}
                         style={{ borderBottom: '1px solid #f1f5f9' }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                        <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>
+                          {(logicPage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{
                             background: item.type === 'pattern' ? '#faf5ff' : '#f0fdfa',
@@ -2240,9 +2392,24 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                         </td>
                       </tr>
                     ))}
+                  {pagedLogic.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                        Không tìm thấy câu đố Logic nào phù hợp với bộ lọc!
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <PaginationControl
+              currentPage={logicPage}
+              totalPages={totalLogicPages}
+              onPageChange={setLogicPage}
+              totalItems={filteredLogic.length}
+              pageSize={ITEMS_PER_PAGE}
+            />
           </div>
         </div>
       )}
@@ -2648,7 +2815,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((u, index) => {
+                  {pagedUsers.map((u, index) => {
                       const isSelected = selectedPlayerId === u.id;
                       const calculatedAge = u.birthDate
                         ? Math.abs(new Date(Date.now() - new Date(u.birthDate).getTime()).getUTCFullYear() - 1970)
@@ -2665,7 +2832,9 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                           onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
                           onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: 700 }}>{index + 1}</td>
+                          <td style={{ padding: '12px 14px', color: '#94a3b8', fontWeight: 700 }}>
+                            {(userPage - 1) * ITEMS_PER_PAGE + index + 1}
+                          </td>
                           
                           {/* Bé & Học Sinh */}
                           <td style={{ padding: '12px 14px' }}>
@@ -2845,6 +3014,14 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                 </tbody>
               </table>
             </div>
+
+            <PaginationControl
+              currentPage={userPage}
+              totalPages={totalUserPages}
+              onPageChange={setUserPage}
+              totalItems={filteredUsers.length}
+              pageSize={ITEMS_PER_PAGE}
+            />
           </div>
 
           {/* SECTION 2: ĐIỀU CHỈNH HỒ SƠ & CHỈ SỐ HỌC SINH ĐƯỢC CHỌN */}
