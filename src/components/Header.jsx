@@ -104,35 +104,55 @@ export default function Header({
           </div>
         )}
 
+        {/* Compact Mobile Stats (Inline on phone < 641px) */}
+        {currentUser ? (
+          <div className="show-on-mobile stat-pill" style={{
+            padding: '3px 8px',
+            fontSize: '11px',
+            color: '#b45309',
+            borderColor: '#fcd34d',
+            gap: '5px',
+            flexShrink: 0
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontWeight: 800 }}>
+              ⭐ {stars}
+            </span>
+            <span style={{ color: '#cbd5e1' }}>&middot;</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontWeight: 800 }}>
+              🪙 {coins}
+            </span>
+          </div>
+        ) : null}
+
         {/* Right Controls: User Auth, Sound & Parent Gate */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           {currentUser ? (
             <>
               <button 
                 onClick={onOpenProfile}
                 className="btn-kid"
                 style={{
-                  padding: '5px 10px',
-                  fontSize: '12px',
+                  padding: '4px 8px',
+                  fontSize: '11px',
                   background: '#f0fdf4',
-                  border: '2px solid #86efac',
+                  border: '1.5px solid #86efac',
                   color: '#15803d',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '4px'
                 }}
                 title="Xem hồ sơ và đồng bộ đám mây"
               >
                 <div style={{
-                  width: '22px',
-                  height: '22px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
                   overflow: 'hidden',
                   background: '#e0f2fe',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '1.5px solid #38bdf8'
+                  border: '1px solid #38bdf8'
                 }}>
                   <img 
                     src={currentUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentUser.email || 'user')}`} 
@@ -141,7 +161,7 @@ export default function Header({
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 </div>
-                <span style={{ maxWidth: '75px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800 }}>
+                <span className="hide-on-mobile" style={{ maxWidth: '75px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800 }}>
                   {currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Bé'}
                 </span>
               </button>
@@ -151,10 +171,10 @@ export default function Header({
                 <button 
                   onClick={onOpenParent}
                   className="btn-kid btn-purple"
-                  style={{ padding: '6px 10px', fontSize: '12px' }}
+                  style={{ padding: '6px 8px', fontSize: '12px' }}
                   title="Báo cáo tiến độ học tập của bé dành cho phụ huynh"
                 >
-                  <ShieldCheck size={15} />
+                  <ShieldCheck size={14} />
                   <span className="hide-on-mobile">Phụ Huynh</span>
                 </button>
               )}
@@ -164,10 +184,10 @@ export default function Header({
                 <button 
                   onClick={onOpenAdmin}
                   className="btn-kid btn-yellow"
-                  style={{ padding: '6px 10px', fontSize: '12px' }}
+                  style={{ padding: '6px 8px', fontSize: '12px' }}
                   title="Quản trị dữ liệu game (Chỉ dành cho Admin)"
                 >
-                  <Settings size={15} />
+                  <Settings size={14} />
                   <span className="hide-on-mobile">Admin</span>
                 </button>
               )}
@@ -176,10 +196,10 @@ export default function Header({
             <button 
               onClick={onOpenAuth}
               className="btn-kid btn-green"
-              style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+              style={{ padding: '5px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
               title="Đăng ký hoặc đăng nhập tài khoản"
             >
-              <User size={15} />
+              <User size={14} />
               <span>Đăng Nhập</span>
             </button>
           )}
@@ -187,51 +207,12 @@ export default function Header({
           <button 
             onClick={onToggleMute}
             className="btn-kid btn-blue"
-            style={{ width: '36px', height: '36px', padding: 0 }}
+            style={{ width: '32px', height: '32px', padding: 0 }}
             title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
           >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
         </div>
-      </div>
-
-      {/* Mobile Sub-tier for Player Stats (< 641px) */}
-      <div className="show-on-mobile" style={{
-        marginTop: '6px',
-        paddingTop: '6px',
-        borderTop: '1px solid #f1f5f9',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px'
-      }}>
-        {currentUser ? (
-          <>
-            <div className="stat-pill" style={{ background: '#fef08a', color: '#854d0e', borderColor: '#facc15', padding: '3px 10px', fontSize: '12px' }}>
-              <span>Cấp {level}</span>
-            </div>
-            <div className="stat-pill" style={{ color: '#d97706', borderColor: '#fde047', padding: '3px 10px', fontSize: '12px' }}>
-              <Star size={14} fill="#facc15" color="#ca8a04" />
-              <span>{stars}</span>
-            </div>
-            <div className="stat-pill" style={{ color: '#b45309', borderColor: '#fcd34d', padding: '3px 10px', fontSize: '12px' }}>
-              <Coins size={14} fill="#fbbf24" color="#d97706" />
-              <span>{coins}</span>
-            </div>
-          </>
-        ) : (
-          <div style={{
-            fontSize: '11px',
-            color: '#64748b',
-            fontWeight: 700,
-            background: '#f8fafc',
-            padding: '3px 12px',
-            borderRadius: '999px',
-            border: '1px solid #e2e8f0'
-          }}>
-            🔒 Đăng nhập để tích Sao ⭐ & lưu tiến độ
-          </div>
-        )}
       </div>
     </header>
   );

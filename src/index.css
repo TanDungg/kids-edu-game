@@ -380,3 +380,71 @@ input, textarea {
   border-radius: clamp(12px, 3vw, 16px);
 }
 
+/* =========================================================
+   COMPACT MOBILE OPTIMIZATIONS (< 640px)
+   Fit worlds in 2x2 grid, avoid endless vertical scrolling
+   ========================================================= */
+
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .page-container {
+    padding: 10px 8px !important;
+  }
+
+  /* 2x2 Grid on Mobile Phones */
+  .world-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .world-card {
+    padding: 12px 10px !important;
+    min-height: 140px !important;
+    border-radius: 20px !important;
+    border-width: 3px !important;
+  }
+
+  .world-card-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+  }
+
+  .world-card-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .world-card-mascot {
+    font-size: 26px !important;
+  }
+
+  .world-card-title {
+    font-size: 14px !important;
+    margin-top: 8px !important;
+    line-height: 1.25 !important;
+  }
+
+  .world-card-badge {
+    font-size: 10px !important;
+    padding: 2px 7px !important;
+  }
+
+  .world-card-sub {
+    font-size: 11px !important;
+    margin-top: 2px !important;
+  }
+
+  /* Hide long descriptions and action buttons on mobile to keep 2x2 compact */
+  .world-card-desc,
+  .world-card-action {
+    display: none !important;
+  }
+}
+
+

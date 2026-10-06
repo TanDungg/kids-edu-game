@@ -103,69 +103,119 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
           </button>
         </div>
       ) : (
-        <div 
-          className="kid-card"
-          style={{
-            padding: '24px',
-            marginBottom: '32px',
-            background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            border: '4px solid #bbf7d0'
-          }}
-        >
-          <div style={{ flex: 1, minWidth: '260px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, marginBottom: '8px' }}>
-              <Sparkles size={14} /> Chào mừng {currentUser.user_metadata?.full_name || 'Bé Thám Hiểm'}!
+        <>
+          {/* Desktop/Tablet Expansive Greeting Banner */}
+          <div 
+            className="kid-card hide-on-mobile"
+            style={{
+              padding: '24px',
+              marginBottom: '28px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px',
+              border: '4px solid #bbf7d0'
+            }}
+          >
+            <div style={{ flex: 1, minWidth: '260px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, marginBottom: '8px' }}>
+                <Sparkles size={14} /> Chào mừng {currentUser.user_metadata?.full_name || 'Bé Thám Hiểm'}!
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', color: '#1e293b', fontWeight: 800 }}>
+                Hôm nay bé muốn khám phá vùng đất nào?
+              </h2>
+              <p style={{ color: '#475569', fontSize: '15px', fontWeight: 600, marginTop: '4px' }}>
+                Mỗi câu trả lời đúng sẽ mang về Sao Vàng 🌟 và Tiền Xu 🪙 để chăm sóc thú cưng nhé!
+              </p>
             </div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', color: '#1e293b', fontWeight: 800 }}>
-              Hôm nay bé muốn khám phá vùng đất nào?
-            </h2>
-            <p style={{ color: '#475569', fontSize: '15px', fontWeight: 600, marginTop: '4px' }}>
-              Mỗi câu trả lời đúng sẽ mang về Sao Vàng 🌟 và Tiền Xu 🪙 để chăm sóc thú cưng nhé!
-            </p>
+
+            {/* Pet Peek */}
+            {pet && (
+              <div 
+                onClick={() => handleSelect('pet')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: '#fffbeb',
+                  padding: '12px 20px',
+                  borderRadius: '20px',
+                  border: '3px solid #fde68a',
+                  cursor: 'pointer'
+                }}
+                className="animate-wiggle"
+              >
+                <span style={{ fontSize: '36px' }}>{pet.emoji}</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>Bạn đồng hành</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#78350f' }}>{pet.name}</div>
+                  <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>Độ vui: {pet.happiness}% ❤️</div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Pet Peek */}
-          {pet && (
-            <div 
-              onClick={() => handleSelect('pet')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                background: '#fffbeb',
-                padding: '12px 20px',
-                borderRadius: '20px',
-                border: '3px solid #fde68a',
-                cursor: 'pointer'
-              }}
-              className="animate-wiggle"
-            >
-              <span style={{ fontSize: '36px' }}>{pet.emoji}</span>
+          {/* Mobile Sleek Slim Greeting Strip (< 641px) */}
+          <div 
+            className="kid-card show-on-mobile"
+            style={{
+              padding: '10px 14px',
+              marginBottom: '10px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              border: '2px solid #bbf7d0'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '22px' }}>✨</span>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>Bạn đồng hành</div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#78350f' }}>{pet.name}</div>
-                <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>Độ vui: {pet.happiness}% ❤️</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', lineHeight: 1.2 }}>
+                  Chào {currentUser.user_metadata?.full_name || 'Bé'}!
+                </div>
+                <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
+                  Bé chọn vùng đất nhé:
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            {pet && (
+              <div 
+                onClick={() => handleSelect('pet')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: '#fffbeb',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  border: '1.5px solid #fde68a',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#b45309',
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: '15px' }}>{pet.emoji}</span>
+                <span>{pet.happiness || 100}% ❤️</span>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Grid 4 Vùng Đất */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-        gap: 'clamp(14px, 3vw, 24px)'
-      }}>
+      {/* Grid 4 Vùng Đất: 2x2 trên mobile, auto-fit trên desktop */}
+      <div className="world-grid">
         {realms.map((realm) => (
           <div
             key={realm.id}
             onClick={() => handleSelect(realm.id)}
+            className="world-card"
             style={{
               background: '#ffffff',
               borderRadius: '28px',
@@ -191,64 +241,84 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
           >
             {/* Top Row: Icon + Mascot + Badge */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
-                background: realm.gradient,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 6px 12px rgba(0,0,0,0.15)'
-              }}>
+              <div 
+                className="world-card-icon"
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '20px',
+                  background: realm.gradient,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 6px 12px rgba(0,0,0,0.15)',
+                  flexShrink: 0
+                }}
+              >
                 {realm.icon}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                <span style={{ fontSize: '36px' }} className="animate-bounce-slow">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <span className="world-card-mascot animate-bounce-slow" style={{ fontSize: '36px' }}>
                   {realm.mascotEmoji}
                 </span>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '3px 10px',
-                  borderRadius: '999px',
-                  background: currentUser ? '#f1f5f9' : '#fee2e2',
-                  color: currentUser ? '#475569' : '#dc2626'
-                }}>
+                <span 
+                  className="world-card-badge"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    background: currentUser ? '#f1f5f9' : '#fee2e2',
+                    color: currentUser ? '#475569' : '#dc2626',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
                   {currentUser ? realm.badge : '🔒 Cần đăng nhập'}
                 </span>
               </div>
             </div>
 
             {/* Content */}
-            <div style={{ marginTop: '16px' }}>
-              <h3 style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '22px',
-                fontWeight: 800,
-                color: '#1e293b',
-                lineHeight: 1.2
-              }}>
+            <div style={{ marginTop: '12px' }}>
+              <h3 
+                className="world-card-title"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '20px',
+                  fontWeight: 800,
+                  color: '#1e293b',
+                  lineHeight: 1.2
+                }}
+              >
                 {realm.title}
               </h3>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: realm.themeColor, marginTop: '2px' }}>
+              <div 
+                className="world-card-sub"
+                style={{ fontSize: '13px', fontWeight: 700, color: realm.themeColor, marginTop: '2px' }}
+              >
                 {realm.subVN}
               </div>
-              <p style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', fontWeight: 600 }}>
+              <p 
+                className="world-card-desc"
+                style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', fontWeight: 600 }}
+              >
                 {realm.desc}
               </p>
             </div>
 
-            {/* Bottom Action */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '16px',
-              paddingTop: '12px',
-              borderTop: '2px dashed #f1f5f9'
-            }}>
+            {/* Bottom Action (Desktop only) */}
+            <div 
+              className="world-card-action"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '16px',
+                paddingTop: '12px',
+                borderTop: '2px dashed #f1f5f9'
+              }}
+            >
               <span style={{
                 fontSize: '14px',
                 fontWeight: 800,
