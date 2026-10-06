@@ -331,7 +331,7 @@ export default function App() {
       />
 
       {/* Main Game Screen Router */}
-      <main style={{ position: "relative", zIndex: 10, paddingBottom: "40px" }}>
+      <main style={{ position: "relative", zIndex: 10, paddingTop: "68px", paddingBottom: "40px" }}>
         {currentScreen === "map" && (
           <WorldMap
             onSelectRealm={(realmId) => {

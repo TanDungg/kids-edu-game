@@ -22,9 +22,12 @@ export default function Header({
       background: 'rgba(255, 255, 255, 0.9)',
       backdropFilter: 'blur(12px)',
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
-      position: 'sticky',
+      position: 'fixed',
       top: 0,
-      zIndex: 50,
+      left: 0,
+      right: 0,
+      width: '100%',
+      zIndex: 100,
       borderBottom: '3px solid #e2e8f0',
       padding: '8px 12px'
     }}>

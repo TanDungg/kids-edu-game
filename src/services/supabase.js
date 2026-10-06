@@ -960,7 +960,7 @@ class SupabaseService {
           address: pl.address || "",
           phone: pl.phone || "",
           hobby: pl.hobby || "",
-          role: pl.role || "user",
+          role: (pl.role === "admin" || pl.id === "admin_master_01" || (pl.email && (pl.email.toLowerCase().includes("admin") || pl.email === "tandung230698@gmail.com"))) ? "admin" : (pl.role || "user"),
           stars: prog.stars !== undefined ? prog.stars : 5,
           coins: prog.coins !== undefined ? prog.coins : 30,
           level: prog.level !== undefined ? prog.level : 1,

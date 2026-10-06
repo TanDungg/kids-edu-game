@@ -102,6 +102,43 @@ export default function AdminDashboard({
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [selectedPlayerName, setSelectedPlayerName] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('student'); // 'student' | 'admin' | 'all'
+
+  // Phân biệt chính xác giữa Tài khoản Quản trị viên (Admin) và Học sinh
+  const isUserAnAdmin = (u) => {
+    if (!u) return false;
+    if (u.role === 'admin') return true;
+    if (u.id === 'admin_master_01') return true;
+    const email = (u.email || '').toLowerCase();
+    if (email === 'admin@kidsedu.com' || email === 'tandung230698@gmail.com' || email.includes('admin')) return true;
+    return false;
+  };
+
+  const studentUsers = React.useMemo(() => {
+    return cloudUsers.filter(u => !isUserAnAdmin(u));
+  }, [cloudUsers]);
+
+  const adminUsers = React.useMemo(() => {
+    return cloudUsers.filter(u => isUserAnAdmin(u));
+  }, [cloudUsers]);
+
+  const filteredUsers = React.useMemo(() => {
+    return cloudUsers.filter(u => {
+      const isAdm = isUserAnAdmin(u);
+      if (userRoleFilter === 'student' && isAdm) return false;
+      if (userRoleFilter === 'admin' && !isAdm) return false;
+      if (!userSearchTerm) return true;
+      const term = userSearchTerm.toLowerCase();
+      return (
+        u.id?.toLowerCase().includes(term) ||
+        u.name?.toLowerCase().includes(term) ||
+        u.email?.toLowerCase().includes(term) ||
+        u.phone?.toLowerCase().includes(term) ||
+        u.address?.toLowerCase().includes(term) ||
+        u.hobby?.toLowerCase().includes(term)
+      );
+    });
+  }, [cloudUsers, userRoleFilter, userSearchTerm]);
 
   // Table Filters & Search
   const [vocabSearch, setVocabSearch] = useState('');
@@ -933,7 +970,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
           { id: 'math', label: 'Bảng Toán Học', icon: Calculator, badge: mathLevels.length, color: '#f59e0b' },
           { id: 'logic', label: 'Bảng Tư Duy Logic', icon: Brain, badge: logicLevels.length, color: '#8b5cf6' },
           { id: 'pet', label: 'Thú Cưng & Cửa Hàng', icon: Dog, badge: pets.length + shopItems.length, color: '#ec4899' },
-          { id: 'player', label: 'Bảng Học Sinh & Người Dùng', icon: Users, badge: `${cloudUsers.length} bé`, color: '#06b6d4' },
+          { id: 'player', label: 'Bảng Học Sinh & Người Dùng', icon: Users, badge: `${studentUsers.length} bé`, color: '#06b6d4' },
           { id: 'cloud', label: 'Cloud Supabase & SQL', icon: Database, badge: 'Online', color: '#6366f1' }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1029,11 +1066,18 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
 
               <div className="kid-card" style={{ padding: '18px', background: '#eff6ff', border: '2px solid #bfdbfe' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>Người Dùng / Bé</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>Học Sinh Đăng Ký</span>
                   <Users size={20} color="#2563eb" />
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, color: '#1e40af' }}>{cloudUsers.length}</div>
-                <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>players (Supabase)</div>
+                <div style={{ fontSize: '30px', fontWeight: 900, color: '#1e40af' }}>{studentUsers.length}</div>
+                <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{studentUsers.length} học sinh</span>
+                  {adminUsers.length > 0 && (
+                    <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, fontSize: '10px' }}>
+                      +{adminUsers.length} admin
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1156,11 +1200,30 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                     <span>Làm mới</span>
                   </button>
                 </div>
-                <div style={{ fontSize: '36px', fontWeight: 900, color: '#4338ca', marginBottom: '6px' }}>
-                  {cloudUsers.length} <span style={{ fontSize: '16px', color: '#6366f1', fontWeight: 700 }}>học sinh đăng ký</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '36px', fontWeight: 900, color: '#4338ca' }}>
+                    {studentUsers.length} <span style={{ fontSize: '16px', color: '#6366f1', fontWeight: 700 }}>học sinh đăng ký</span>
+                  </div>
+                  {adminUsers.length > 0 && (
+                    <div style={{
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      color: '#dc2626',
+                      background: '#fef2f2',
+                      border: '1.5px solid #fecaca',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>🛡️</span>
+                      <span>Đã lọc riêng {adminUsers.length} tài khoản Admin</span>
+                    </div>
+                  )}
                 </div>
                 <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
-                  Dữ liệu tài khoản phân quyền độc lập, lưu trữ trực tuyến an toàn trên Supabase Cloud ☁️
+                  Dữ liệu tài khoản phân quyền độc lập, đã tách tài khoản Quản trị viên để thống kê học tập chính xác trên Supabase Cloud ☁️
                 </p>
               </div>
             </div>
@@ -1197,7 +1260,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                       { name: '🧩 Tháp Tư Duy Logic', count: logicLevels.length, table: 'game_logic', tab: 'logic', color: '#8b5cf6' },
                       { name: '🐾 Thú Cưng Nuôi Dưỡng', count: pets.length, table: 'game_pets', tab: 'pet', color: '#ec4899' },
                       { name: '🎁 Cửa Hàng Quà Tặng', count: shopItems.length, table: 'game_shop', tab: 'pet', color: '#06b6d4' },
-                      { name: '👥 Học Sinh & Người Dùng', count: cloudUsers.length, table: 'players & game_progress', tab: 'player', color: '#6366f1' }
+                      { name: '👥 Học Sinh & Người Dùng', count: `${studentUsers.length} bé (${adminUsers.length} admin)`, table: 'players & game_progress', tab: 'player', color: '#6366f1' }
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                         <td style={{ padding: '14px 16px', fontWeight: 800, color: '#1e293b' }}>{row.name}</td>
@@ -2346,6 +2409,150 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
               </div>
             </div>
 
+            {/* Filter Tabs & Badges */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => { sounds.playClick(); setUserRoleFilter('student'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: userRoleFilter === 'student' ? '2px solid #0284c7' : '1.5px solid #cbd5e1',
+                    background: userRoleFilter === 'student' ? '#e0f2fe' : '#ffffff',
+                    color: userRoleFilter === 'student' ? '#0369a1' : '#64748b',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <span>👶 Chỉ Học Sinh</span>
+                  <span style={{
+                    background: userRoleFilter === 'student' ? '#0284c7' : '#e2e8f0',
+                    color: userRoleFilter === 'student' ? '#ffffff' : '#64748b',
+                    borderRadius: '999px',
+                    padding: '1px 7px',
+                    fontSize: '11px',
+                    fontWeight: 800
+                  }}>
+                    {studentUsers.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { sounds.playClick(); setUserRoleFilter('admin'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: userRoleFilter === 'admin' ? '2px solid #ef4444' : '1.5px solid #cbd5e1',
+                    background: userRoleFilter === 'admin' ? '#fef2f2' : '#ffffff',
+                    color: userRoleFilter === 'admin' ? '#b91c1c' : '#64748b',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <span>👑 Quản Trị Viên (Admin)</span>
+                  <span style={{
+                    background: userRoleFilter === 'admin' ? '#ef4444' : '#e2e8f0',
+                    color: userRoleFilter === 'admin' ? '#ffffff' : '#64748b',
+                    borderRadius: '999px',
+                    padding: '1px 7px',
+                    fontSize: '11px',
+                    fontWeight: 800
+                  }}>
+                    {adminUsers.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { sounds.playClick(); setUserRoleFilter('all'); }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: userRoleFilter === 'all' ? '2px solid #8b5cf6' : '1.5px solid #cbd5e1',
+                    background: userRoleFilter === 'all' ? '#f5f3ff' : '#ffffff',
+                    color: userRoleFilter === 'all' ? '#6d28d9' : '#64748b',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <span>🌐 Tất Cả Tài Khoản</span>
+                  <span style={{
+                    background: userRoleFilter === 'all' ? '#8b5cf6' : '#e2e8f0',
+                    color: userRoleFilter === 'all' ? '#ffffff' : '#64748b',
+                    borderRadius: '999px',
+                    padding: '1px 7px',
+                    fontSize: '11px',
+                    fontWeight: 800
+                  }}>
+                    {cloudUsers.length}
+                  </span>
+                </button>
+              </div>
+
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                {userRoleFilter === 'student' && `Đang hiển thị ${studentUsers.length} bé (đã lọc ${adminUsers.length} admin)`}
+                {userRoleFilter === 'admin' && `Đang hiển thị ${adminUsers.length} tài khoản Quản trị viên`}
+                {userRoleFilter === 'all' && `Hiển thị toàn bộ ${cloudUsers.length} tài khoản`}
+              </div>
+            </div>
+
+            {/* Thông báo lọc Admin tự động */}
+            {userRoleFilter === 'student' && adminUsers.length > 0 && (
+              <div style={{
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '10px',
+                padding: '8px 14px',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+                fontSize: '12px',
+                color: '#15803d',
+                fontWeight: 600
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🛡️</span>
+                  <span>Hệ thống đã tự động lọc <strong>{adminUsers.length} tài khoản Quản trị viên (Admin)</strong> ra khỏi danh sách học sinh.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { sounds.playClick(); setUserRoleFilter('admin'); }}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #86efac',
+                    color: '#15803d',
+                    borderRadius: '6px',
+                    padding: '3px 10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '11px'
+                  }}
+                >
+                  Xem {adminUsers.length} Admin ➔
+                </button>
+              </div>
+            )}
+
             {/* Table Grid */}
             <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '14px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
@@ -2365,20 +2572,7 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                   </tr>
                 </thead>
                 <tbody>
-                  {cloudUsers
-                    .filter(u => {
-                      if (!userSearchTerm) return true;
-                      const term = userSearchTerm.toLowerCase();
-                      return (
-                        u.id?.toLowerCase().includes(term) ||
-                        u.name?.toLowerCase().includes(term) ||
-                        u.email?.toLowerCase().includes(term) ||
-                        u.phone?.toLowerCase().includes(term) ||
-                        u.address?.toLowerCase().includes(term) ||
-                        u.hobby?.toLowerCase().includes(term)
-                      );
-                    })
-                    .map((u, index) => {
+                  {filteredUsers.map((u, index) => {
                       const isSelected = selectedPlayerId === u.id;
                       const calculatedAge = u.birthDate
                         ? Math.abs(new Date(Date.now() - new Date(u.birthDate).getTime()).getUTCFullYear() - 1970)
@@ -2425,13 +2619,13 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                             <div style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
                               {u.email || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có email</span>}
                             </div>
-                            {u.role === 'admin' ? (
-                              <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>
+                            {isUserAnAdmin(u) ? (
+                              <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                                 👑 Admin
                               </span>
                             ) : (
-                              <span style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>
-                                Học sinh
+                              <span style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                👶 Học sinh
                               </span>
                             )}
                           </td>
@@ -2555,15 +2749,19 @@ CREATE POLICY "Allow public learning_logs" ON public.learning_logs FOR ALL TO pu
                       );
                     })}
 
-                  {cloudUsers.length === 0 && (
+                  {filteredUsers.length === 0 && (
                     <tr>
                       <td colSpan={11} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>☁️</div>
+                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</div>
                         <div style={{ fontWeight: 800, fontSize: '14px', color: '#334155', marginBottom: '4px' }}>
-                          Chưa có tài khoản nào được ghi nhận trên Supabase
+                          Không có tài khoản nào phù hợp bộ lọc
                         </div>
                         <p style={{ fontSize: '12px', margin: 0 }}>
-                          Khi người dùng đăng ký hoặc đăng nhập qua Google/Email, tài khoản sẽ tự động xuất hiện tại bảng này.
+                          {userRoleFilter === 'student'
+                            ? `Đã lọc ${adminUsers.length} tài khoản Admin. Không còn học sinh nào phù hợp từ khóa tìm kiếm.`
+                            : userRoleFilter === 'admin'
+                            ? 'Không tìm thấy tài khoản Quản trị viên nào phù hợp từ khóa.'
+                            : 'Không tìm thấy tài khoản nào trên hệ thống.'}
                         </p>
                       </td>
                     </tr>
