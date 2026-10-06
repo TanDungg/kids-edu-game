@@ -33,7 +33,6 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
 }
 
 body {
@@ -42,6 +41,33 @@ body {
   color: #1e293b;
   min-height: 100vh;
   overflow-x: hidden;
+  user-select: none;
+}
+
+/* Ensure inputs, buttons, and textareas inherit font and allow text selection */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+input, textarea {
+  user-select: text;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Kid Button 3D Press Effect */
@@ -59,14 +85,15 @@ body {
   text-decoration: none;
   position: relative;
   outline: none;
+  line-height: 1.2;
 }
 
 .btn-kid:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
 .btn-kid:active {
-  transform: translateY(4px);
+  transform: translateY(3px);
 }
 
 .btn-yellow {
@@ -112,6 +139,56 @@ body {
 }
 .btn-purple:active {
   box-shadow: 0 2px 0 #9333ea, 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-gray {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 6px 0 #cbd5e1, 0 10px 15px rgba(0, 0, 0, 0.04);
+}
+.btn-gray:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  color: #1e293b;
+}
+.btn-gray:active {
+  box-shadow: 0 2px 0 #cbd5e1, 0 4px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-red {
+  background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 0 #dc2626, 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+.btn-red:active {
+  box-shadow: 0 2px 0 #dc2626, 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Unified Kid Input Style */
+.kid-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  outline: none;
+  transition: all 0.15s ease-in-out;
+  box-sizing: border-box;
+}
+
+.kid-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+  background: #ffffff;
+}
+
+.kid-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 /* Floating Animation */

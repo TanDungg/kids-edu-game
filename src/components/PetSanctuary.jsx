@@ -131,12 +131,10 @@ export default function PetSanctuary({
                   setSelectedPet(p);
                   onUpdatePet(p);
                 }}
-                className={`btn-kid ${selectedPet.id === p.id ? 'btn-yellow' : ''}`}
+                className={`btn-kid ${selectedPet.id === p.id ? 'btn-yellow' : 'btn-gray'}`}
                 style={{
-                  padding: '6px 12px',
-                  fontSize: '18px',
-                  background: selectedPet.id !== p.id ? '#f1f5f9' : undefined,
-                  boxShadow: selectedPet.id !== p.id ? 'none' : undefined
+                  padding: '6px 14px',
+                  fontSize: '20px'
                 }}
               >
                 {p.emoji}

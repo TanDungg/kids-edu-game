@@ -346,140 +346,101 @@ export default function UserProfileModal({
 
         {/* EDITING FORM */}
         {isEditing ? (
-          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                 Tên Của Bé hoặc Ba Mẹ:
               </label>
               <div style={{ position: 'relative' }}>
-                <User size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <User size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type="text"
+                  className="kid-input"
+                  style={{ paddingLeft: '38px' }}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Vd: Bé Bắp, Minh Anh..."
                   required
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 34px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    fontWeight: 600,
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                   Ngày Sinh Của Bé:
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Calendar size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Calendar size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type="date"
+                    className="kid-input"
+                    style={{ paddingLeft: '38px' }}
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 8px 8px 34px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '13px',
-                      outline: 'none',
-                      fontWeight: 600,
-                      boxSizing: 'border-box'
-                    }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                   Số Điện Thoại Phụ Huynh:
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type="tel"
+                    className="kid-input"
+                    style={{ paddingLeft: '38px' }}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Vd: 0912..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px 8px 34px',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '13px',
-                      outline: 'none',
-                      fontWeight: 600,
-                      boxSizing: 'border-box'
-                    }}
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                 Địa Chỉ / Tỉnh Thành:
               </label>
               <div style={{ position: 'relative' }}>
-                <MapPin size={16} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <MapPin size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type="text"
+                  className="kid-input"
+                  style={{ paddingLeft: '38px' }}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Vd: Hà Nội, TP. Hồ Chí Minh..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 34px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    fontWeight: 600,
-                    boxSizing: 'border-box'
-                  }}
+                  placeholder="Vd: Hà Nội, TP. Đà Nẵng, TP. HCM..."
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '5px' }}>
                 Sở Thích / Ước Mơ Của Bé:
               </label>
               <div style={{ position: 'relative' }}>
-                <Heart size={16} color="#ec4899" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                <Heart size={16} color="#ec4899" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 <input
                   type="text"
+                  className="kid-input"
+                  style={{ paddingLeft: '38px' }}
                   value={hobby}
                   onChange={(e) => setHobby(e.target.value)}
                   placeholder="Vd: Khám phá vũ trụ, vẽ tranh, học toán..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 34px',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '13px',
-                    outline: 'none',
-                    fontWeight: 600,
-                    boxSizing: 'border-box'
-                  }}
                 />
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+            {/* UNIFIED ACTION BUTTONS: SAVE & CANCEL */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
               <button
                 type="submit"
                 disabled={isSaving}
                 className="btn-kid btn-green"
-                style={{ flex: 1, padding: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ flex: 1, padding: '12px 18px', fontSize: '14px', fontWeight: 800 }}
               >
                 <Save size={16} />
                 <span>{isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
@@ -487,8 +448,8 @@ export default function UserProfileModal({
               <button
                 type="button"
                 onClick={() => { sounds.playClick(); setIsEditing(false); }}
-                className="btn-kid"
-                style={{ padding: '10px 16px', fontSize: '13px', background: '#f1f5f9', color: '#475569', border: '1.5px solid #cbd5e1' }}
+                className="btn-kid btn-gray"
+                style={{ minWidth: '100px', padding: '12px 20px', fontSize: '14px', fontWeight: 800 }}
               >
                 Hủy
               </button>

@@ -182,21 +182,63 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           Từ {levelIndex + 1} / {wordsList.length} (Đã xáo trộn 🎲)
         </div>
 
-        {/* Language Switcher */}
-        <div style={{ display: 'flex', gap: '8px', background: '#ffffff', padding: '4px', borderRadius: '999px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+        {/* Language Switcher Segmented Control */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          background: '#ffffff',
+          padding: '4px',
+          borderRadius: '999px',
+          border: '2px solid #e2e8f0',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+          height: '40px',
+          boxSizing: 'border-box'
+        }}>
           <button
-            onClick={() => setMode('VN')}
-            className={`btn-kid ${mode === 'VN' ? 'btn-pink' : ''}`}
-            style={{ padding: '6px 14px', fontSize: '13px', background: mode !== 'VN' ? 'transparent' : undefined, color: mode !== 'VN' ? '#64748b' : undefined, boxShadow: mode !== 'VN' ? 'none' : undefined }}
+            type="button"
+            onClick={() => { sounds.playClick(); setMode('VN'); }}
+            style={{
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              fontSize: '13px',
+              fontWeight: 800,
+              fontFamily: 'inherit',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: mode === 'VN' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
+              color: mode === 'VN' ? '#ffffff' : '#64748b',
+              boxShadow: mode === 'VN' ? '0 2px 6px rgba(219, 39, 119, 0.35)' : 'none',
+              outline: 'none'
+            }}
           >
-            🇻🇳 Tiếng Việt
+            <span>🇻🇳</span> Tiếng Việt
           </button>
           <button
-            onClick={() => setMode('EN')}
-            className={`btn-kid ${mode === 'EN' ? 'btn-blue' : ''}`}
-            style={{ padding: '6px 14px', fontSize: '13px', background: mode !== 'EN' ? 'transparent' : undefined, color: mode !== 'EN' ? '#64748b' : undefined, boxShadow: mode !== 'EN' ? 'none' : undefined }}
+            type="button"
+            onClick={() => { sounds.playClick(); setMode('EN'); }}
+            style={{
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              fontSize: '13px',
+              fontWeight: 800,
+              fontFamily: 'inherit',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: mode === 'EN' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'transparent',
+              color: mode === 'EN' ? '#ffffff' : '#64748b',
+              boxShadow: mode === 'EN' ? '0 2px 6px rgba(37, 99, 235, 0.35)' : 'none',
+              outline: 'none'
+            }}
           >
-            🇬🇧 English
+            <span>🇬🇧</span> English
           </button>
         </div>
 
