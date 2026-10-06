@@ -463,6 +463,34 @@ class SupabaseService {
     return data;
   }
 
+  async updateUserProfile({ fullName, avatarUrl, birthDate, address, phone, notes }) {
+    if (!this.client) throw new Error('Chưa kết nối Supabase API');
+    const { data, error } = await this.client.auth.updateUser({
+      data: {
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        birth_date: birthDate,
+        address: address,
+        phone: phone,
+        notes: notes
+      }
+    });
+    if (error) throw error;
+
+    if (data?.user?.id) {
+      try {
+        await this.client.from('players').upsert({
+          id: data.user.id,
+          name: fullName || 'Bé Thám Hiểm'
+        });
+      } catch (e) {
+        console.warn('Update players table warning:', e);
+      }
+    }
+
+    return data.user;
+  }
+
   // ================= 8. THỐNG KÊ QUẢN TRỊ & BIỂU ĐỒ =================
   async fetchAllPlayersWithProgress() {
     if (!this.client) return { players: [], logs: [] };

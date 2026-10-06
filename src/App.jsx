@@ -311,6 +311,11 @@ export default function App() {
           isOpen={isParentOpen}
           onClose={() => setIsParentOpen(false)}
           stats={stats}
+          stars={stars}
+          coins={coins}
+          level={level}
+          pet={pet}
+          currentUser={currentUser}
           onResetData={handleResetData}
         />
       )}
@@ -341,6 +346,7 @@ export default function App() {
         }}
         onLogout={handleLogout}
         onManualSync={handleManualSync}
+        onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
       />
     </div>
   );
