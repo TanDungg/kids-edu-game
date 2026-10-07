@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Puzzle, Heart, Sparkles, ArrowRight, Lock } from 'lucide-react';
+import { BookOpen, Calculator, Puzzle, Heart, Sparkles, ArrowRight, Lock, Trophy, Award } from 'lucide-react';
 import { sounds } from '../utils/sound';
 
 export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }) {
@@ -9,7 +9,7 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
       title: 'Thung Lũng Ngôn Ngữ',
       subVN: 'Tiếng Việt & Tiếng Anh Song Ngữ',
       desc: 'Học từ vựng, nghe phát âm chuẩn và ghép chữ cái kỳ diệu!',
-      icon: <BookOpen size={36} color="#ffffff" />,
+      icon: <BookOpen size={30} color="#ffffff" />,
       themeColor: '#ec4899',
       gradient: 'linear-gradient(135deg, #f472b6 0%, #db2777 100%)',
       shadowColor: '#be185d',
@@ -21,7 +21,7 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
       title: 'Nông Trại Số Học',
       subVN: 'Toán Tư Duy & Đếm Số',
       desc: 'Đếm quả chín, phép cộng kẹo ngọt và so sánh lớn nhỏ!',
-      icon: <Calculator size={36} color="#ffffff" />,
+      icon: <Calculator size={30} color="#ffffff" />,
       themeColor: '#10b981',
       gradient: 'linear-gradient(135deg, #34d399 0%, #059669 100%)',
       shadowColor: '#047857',
@@ -33,7 +33,7 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
       title: 'Tháp Bí Ẩn Logic',
       subVN: 'Tư Duy & Giải Đố',
       desc: 'Khám phá quy luật chuỗi hình, tìm điểm khác biệt và thử thách trí tuệ!',
-      icon: <Puzzle size={36} color="#ffffff" />,
+      icon: <Puzzle size={30} color="#ffffff" />,
       themeColor: '#8b5cf6',
       gradient: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
       shadowColor: '#6d28d9',
@@ -45,7 +45,7 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
       title: 'Góc Thú Cưng',
       subVN: 'Nuôi Thú & Cửa Hàng Xu',
       desc: `Chăm sóc ${pet ? pet.name : 'thú cưng'}, cho ăn kem ngon và mua mũ đẹp!`,
-      icon: <Heart size={36} color="#ffffff" />,
+      icon: <Heart size={30} color="#ffffff" />,
       themeColor: '#f59e0b',
       gradient: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
       shadowColor: '#b45309',
@@ -64,121 +64,165 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
   };
 
   return (
-    <div className="page-container" style={{ maxWidth: '1000px' }}>
-      {/* Banner: Hiển thị trạng thái theo người dùng */}
+    <div className="page-container" style={{ maxWidth: '850px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+      {/* Banner: Guest vs Logged-In User */}
       {!currentUser ? (
         <div 
-          className="kid-card"
+          className="kid-card animate-pop-in"
           style={{
-            padding: 'clamp(16px, 4vw, 24px)',
-            marginBottom: 'clamp(18px, 4vw, 32px)',
-            background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            border: '4px solid #bfdbfe'
+            padding: 'clamp(16px, 4vw, 22px)',
+            marginBottom: '16px',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 60%, #fdf2f8 100%)',
+            borderRadius: '24px',
+            border: '2.5px solid #bae6fd',
+            boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.12)',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          <div style={{ flex: 1, minWidth: '260px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1d4ed8', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, marginBottom: '8px' }}>
-              <Lock size={14} /> Khu Vực Yêu Cầu Đăng Nhập
+          {/* Top Decorative Sparkle Tag */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: '#e0f2fe',
+              color: '#0284c7',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              border: '1px solid #bae6fd'
+            }}>
+              <span>🚀</span> <span>Vương Quốc Học Vui Dành Cho Bé</span>
             </div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: '#1e293b', fontWeight: 800, margin: '4px 0 8px' }}>
-              Chào mừng bạn đến với Vương Quốc Tí Hon!
-            </h2>
-            <p style={{ color: '#475569', fontSize: '14px', fontWeight: 600, margin: 0, maxWidth: '600px', lineHeight: 1.5 }}>
-              Bé và ba mẹ vui lòng <strong>Đăng Nhập</strong> hoặc <strong>Tạo Tài Khoản</strong> để bắt đầu các thử thách, nhận Sao Vàng ⭐, tích Xu Vàng 🪙 và lưu giữ tiến độ an toàn trên đám mây nhé!
-            </p>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#fef3c7',
+              color: '#b45309',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              fontSize: '11px',
+              fontWeight: 800,
+              border: '1px solid #fde68a'
+            }}>
+              <span>☁️</span> <span>Lưu Trữ Đám Mây</span>
+            </div>
           </div>
 
+          {/* Hero Content with Mascot */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '220px' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(17px, 4.5vw, 22px)',
+                color: '#0f172a',
+                fontWeight: 900,
+                margin: '0 0 6px',
+                lineHeight: 1.25
+              }}>
+                Chào Mừng Bé Đến Thế Giới Học Vui! 🌟
+              </h2>
+              <p style={{ color: '#475569', fontSize: '12.5px', fontWeight: 600, margin: '0 0 10px', lineHeight: 1.45 }}>
+                Ghép chữ song ngữ Anh - Việt, rèn tư duy toán học và nuôi thú cưng diệu kỳ cùng ba mẹ!
+              </p>
+
+              {/* 3 Quick Benefit Chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#ca8a04', background: '#fefce8', border: '1px solid #fef08a', padding: '2px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  ⭐ Tích Sao Vàng
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '2px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  🪙 Tích Xu Đổi Quà
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  ☁️ Tự Động Lưu Dữ Liệu
+                </span>
+              </div>
+            </div>
+
+            {/* Mascot Visual */}
+            <div style={{
+              fontSize: 'clamp(44px, 10vw, 56px)',
+              lineHeight: 1,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} className="animate-bounce-slow">
+              🧸
+            </div>
+          </div>
+
+          {/* Prominent Single-Line CTA Button */}
           <button
+            type="button"
             onClick={() => { sounds.playClick(); if (onOpenAuth) onOpenAuth(); }}
-            className="btn-kid btn-green"
-            style={{ padding: '12px 24px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{
+              width: '100%',
+              padding: '12px 18px',
+              fontSize: 'clamp(13.5px, 3.8vw, 15.5px)',
+              fontWeight: 900,
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '16px',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+              boxSizing: 'border-box'
+            }}
           >
-            <Sparkles size={18} />
-            <span>Đăng Nhập Để Chơi Ngay 🚀</span>
+            <Sparkles size={16} />
+            <span>Đăng Nhập / Đăng Ký Để Chơi Ngay 🚀</span>
           </button>
         </div>
       ) : (
         <>
-          {/* Desktop/Tablet Expansive Greeting Banner */}
+          {/* Greeting Banner */}
           <div 
-            className="kid-card hide-on-mobile"
+            className="kid-card"
             style={{
-              padding: '24px',
-              marginBottom: '28px',
+              padding: 'clamp(12px, 3vw, 18px)',
+              marginBottom: '14px',
               background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              border: '4px solid #bbf7d0'
+              gap: '10px',
+              border: '2.5px solid #bbf7d0'
             }}
           >
-            <div style={{ flex: 1, minWidth: '260px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, marginBottom: '8px' }}>
-                <Sparkles size={14} /> Chào mừng {currentUser.user_metadata?.full_name || 'Bé Thám Hiểm'}!
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                background: '#dcfce7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '22px',
+                flexShrink: 0,
+                border: '2px solid #86efac'
+              }}>
+                ✨
               </div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', color: '#1e293b', fontWeight: 800 }}>
-                Hôm nay bé muốn khám phá vùng đất nào?
-              </h2>
-              <p style={{ color: '#475569', fontSize: '15px', fontWeight: 600, marginTop: '4px' }}>
-                Mỗi câu trả lời đúng sẽ mang về Sao Vàng 🌟 và Tiền Xu 🪙 để chăm sóc thú cưng nhé!
-              </p>
-            </div>
-
-            {/* Pet Peek */}
-            {pet && (
-              <div 
-                onClick={() => handleSelect('pet')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  background: '#fffbeb',
-                  padding: '12px 20px',
-                  borderRadius: '20px',
-                  border: '3px solid #fde68a',
-                  cursor: 'pointer'
-                }}
-                className="animate-wiggle"
-              >
-                <span style={{ fontSize: '36px' }}>{pet.emoji}</span>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>Bạn đồng hành</div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#78350f' }}>{pet.name}</div>
-                  <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 700 }}>Độ vui: {pet.happiness}% ❤️</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Sleek Slim Greeting Strip (< 641px) */}
-          <div 
-            className="kid-card show-on-mobile"
-            style={{
-              padding: '10px 14px',
-              marginBottom: '10px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-              border: '2px solid #bbf7d0'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '22px' }}>✨</span>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', lineHeight: 1.2 }}>
-                  Chào {currentUser.user_metadata?.full_name || 'Bé'}!
+                <div style={{ fontSize: 'clamp(14px, 3.8vw, 17px)', fontWeight: 900, color: '#1e293b', lineHeight: 1.2 }}>
+                  Chào {currentUser.user_metadata?.full_name || 'Bé Thám Hiểm'}!
                 </div>
-                <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
-                  Bé chọn vùng đất nhé:
+                <div style={{ fontSize: 'clamp(11.5px, 3vw, 13px)', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>
+                  Hôm nay bé muốn khám phá vùng đất nào? 🌟
                 </div>
               </div>
             </div>
@@ -189,54 +233,50 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '6px',
                   background: '#fffbeb',
-                  padding: '4px 10px',
+                  padding: '6px 12px',
                   borderRadius: '999px',
-                  border: '1.5px solid #fde68a',
+                  border: '2px solid #fde68a',
                   cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: 800,
+                  fontSize: '12px',
+                  fontWeight: 900,
                   color: '#b45309',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)'
                 }}
+                title="Chăm sóc thú cưng"
               >
-                <span style={{ fontSize: '15px' }}>{pet.emoji}</span>
-                <span>{pet.happiness || 100}% ❤️</span>
+                <span style={{ fontSize: '18px' }} className="animate-wiggle">{pet.emoji}</span>
+                <span className="hide-on-mobile">{pet.name}</span>
+                <span style={{ color: '#ea580c' }}>{pet.happiness || 100}% ❤️</span>
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* Grid 4 Vùng Đất: 2x2 trên mobile, auto-fit trên desktop */}
+      {/* Grid 4 Vùng Đất: 2x2 on Mobile, Well-proportioned */}
       <div className="world-grid">
         {realms.map((realm) => (
           <div
             key={realm.id}
             onClick={() => handleSelect(realm.id)}
-            className="world-card"
+            className="world-card kid-card"
             style={{
               background: '#ffffff',
-              borderRadius: '28px',
-              padding: '24px',
+              borderRadius: '24px',
+              padding: 'clamp(14px, 3.5vw, 20px)',
               cursor: 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: `0 8px 0 ${realm.shadowColor}, 0 20px 25px rgba(0, 0, 0, 0.1)`,
-              border: '4px solid #ffffff',
-              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              boxShadow: `0 6px 0 ${realm.shadowColor}, 0 16px 22px rgba(0, 0, 0, 0.08)`,
+              border: '3.5px solid #ffffff',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              minHeight: '220px',
-              opacity: currentUser ? 1 : 0.95
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-6px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
+              minHeight: 'clamp(160px, 24vh, 210px)',
+              boxSizing: 'border-box'
             }}
           >
             {/* Top Row: Icon + Mascot + Badge */}
@@ -244,154 +284,149 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
               <div 
                 className="world-card-icon"
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '20px',
+                  width: 'clamp(46px, 11vw, 56px)',
+                  height: 'clamp(46px, 11vw, 56px)',
+                  borderRadius: '16px',
                   background: realm.gradient,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 6px 12px rgba(0,0,0,0.15)',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
                   flexShrink: 0
                 }}
               >
                 {realm.icon}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                <span className="world-card-mascot animate-bounce-slow" style={{ fontSize: '36px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                <span className="world-card-mascot animate-bounce-slow" style={{ fontSize: 'clamp(28px, 6.5vw, 36px)' }}>
                   {realm.mascotEmoji}
                 </span>
                 <span 
                   className="world-card-badge"
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 10px',
+                    fontSize: '10.5px',
+                    fontWeight: 900,
+                    padding: '2px 8px',
                     borderRadius: '999px',
-                    background: currentUser ? '#f1f5f9' : '#fee2e2',
-                    color: currentUser ? '#475569' : '#dc2626',
+                    background: currentUser ? '#f1f5f9' : '#faf5ff',
+                    color: currentUser ? '#475569' : '#7c3aed',
+                    border: currentUser ? '1px solid #e2e8f0' : '1px solid #e9d5ff',
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  {currentUser ? realm.badge : '🔒 Cần đăng nhập'}
+                  {currentUser ? realm.badge : '✨ Mở khóa'}
                 </span>
               </div>
             </div>
 
             {/* Content */}
-            <div style={{ marginTop: '12px' }}>
+            <div style={{ marginTop: '10px' }}>
               <h3 
                 className="world-card-title"
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: '20px',
-                  fontWeight: 800,
+                  fontSize: 'clamp(14.5px, 3.8vw, 18px)',
+                  fontWeight: 900,
                   color: '#1e293b',
-                  lineHeight: 1.2
+                  lineHeight: 1.25,
+                  margin: 0
                 }}
               >
                 {realm.title}
               </h3>
               <div 
                 className="world-card-sub"
-                style={{ fontSize: '13px', fontWeight: 700, color: realm.themeColor, marginTop: '2px' }}
+                style={{ fontSize: 'clamp(11.5px, 2.8vw, 13px)', fontWeight: 800, color: realm.themeColor, marginTop: '3px' }}
               >
                 {realm.subVN}
               </div>
               <p 
-                className="world-card-desc"
-                style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', fontWeight: 600 }}
+                className="world-card-desc hide-on-mobile"
+                style={{ fontSize: '12.5px', color: '#64748b', marginTop: '6px', fontWeight: 600, lineHeight: 1.35 }}
               >
                 {realm.desc}
               </p>
             </div>
 
-            {/* Bottom Action (Desktop only) */}
-            <div 
-              className="world-card-action"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginTop: '16px',
-                paddingTop: '12px',
-                borderTop: '2px dashed #f1f5f9'
-              }}
-            >
+            {/* Bottom Quick Tap Arrow on Mobile & Desktop */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '10px',
+              paddingTop: '8px',
+              borderTop: '1.5px dashed #f1f5f9'
+            }}>
               <span style={{
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: 800,
-                color: currentUser ? realm.themeColor : '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
+                color: realm.themeColor
               }}>
-                {currentUser ? (
-                  <span>Khám phá ngay</span>
-                ) : (
-                  <>
-                    <Lock size={15} />
-                    <span>Đăng nhập để mở khóa</span>
-                  </>
-                )}
+                {currentUser ? 'Chơi ngay' : 'Khám phá ngay'}
               </span>
               <div style={{
-                width: '32px',
-                height: '32px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
-                background: currentUser ? realm.gradient : '#e2e8f0',
+                background: realm.gradient,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: currentUser ? '#ffffff' : '#64748b'
+                color: '#ffffff'
               }}>
-                {currentUser ? <ArrowRight size={16} /> : <Lock size={15} />}
+                <ArrowRight size={14} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Mobile Interactive Daily Quests & Quick Play Hub (< 641px) */}
+      {/* Daily Quests & Quick Play Hub */}
       <div 
-        className="kid-card show-on-mobile"
+        className="kid-card"
         style={{
-          marginTop: '12px',
-          padding: '12px 14px',
+          marginTop: '14px',
+          padding: 'clamp(12px, 3vw, 18px)',
           background: 'linear-gradient(135deg, #ffffff 0%, #fefce8 100%)',
           border: '2.5px solid #fef08a'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '18px' }}>🎯</span>
-            <span style={{ fontSize: '13px', fontWeight: 900, color: '#854d0e' }}>Nhiệm Vụ Rèn Luyện Hôm Nay</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '20px' }}>🎯</span>
+            <span style={{ fontSize: 'clamp(13px, 3.6vw, 15px)', fontWeight: 900, color: '#854d0e' }}>
+              Nhiệm Vụ Rèn Luyện Hôm Nay
+            </span>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#ca8a04', background: '#fef3c7', padding: '2px 8px', borderRadius: '999px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 900, color: '#ca8a04', background: '#fef3c7', padding: '3px 10px', borderRadius: '999px', border: '1px solid #fde68a' }}>
             +30 Xu 🪙
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div 
             onClick={() => handleSelect('language')}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 10px',
+              padding: '10px 12px',
               background: '#ffffff',
-              borderRadius: '12px',
+              borderRadius: '14px',
               border: '1.5px solid #fbcfe8',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>📚</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Thung Lũng Ngôn Ngữ: Học từ vựng & ghép chữ</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>📚</span>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>Thung Lũng Ngôn Ngữ</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Học từ vựng song ngữ & ghép chữ kỳ diệu</div>
+              </div>
             </div>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#ec4899', flexShrink: 0 }}>Vào ➔</span>
+            <span style={{ fontSize: '12px', fontWeight: 900, color: '#ec4899', flexShrink: 0 }}>Vào ➔</span>
           </div>
 
           <div 
@@ -400,18 +435,22 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 10px',
+              padding: '10px 12px',
               background: '#ffffff',
-              borderRadius: '12px',
+              borderRadius: '14px',
               border: '1.5px solid #bbf7d0',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>🔢</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Nông Trại Số Học: Đếm số & tính nhẩm</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🔢</span>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>Nông Trại Số Học</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Đếm số, làm phép tính & so sánh lớn nhỏ</div>
+              </div>
             </div>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16a34a', flexShrink: 0 }}>Vào ➔</span>
+            <span style={{ fontSize: '12px', fontWeight: 900, color: '#16a34a', flexShrink: 0 }}>Vào ➔</span>
           </div>
 
           <div 
@@ -420,22 +459,25 @@ export default function WorldMap({ onSelectRealm, pet, currentUser, onOpenAuth }
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 10px',
+              padding: '10px 12px',
               background: '#ffffff',
-              borderRadius: '12px',
+              borderRadius: '14px',
               border: '1.5px solid #ddd6fe',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>🧩</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Tháp Bí Ẩn Logic: Thử tài tìm quy luật</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🧩</span>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>Tháp Bí Ẩn Logic</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Tìm quy luật chuỗi hình & phát triển tư duy</div>
+              </div>
             </div>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#8b5cf6', flexShrink: 0 }}>Vào ➔</span>
+            <span style={{ fontSize: '12px', fontWeight: 900, color: '#8b5cf6', flexShrink: 0 }}>Vào ➔</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

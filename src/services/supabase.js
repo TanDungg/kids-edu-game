@@ -717,9 +717,13 @@ class SupabaseService {
       provider: "google",
       options: {
         redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
       },
     });
     if (error) throw error;
+    if (data?.url) {
+      window.location.href = data.url;
+    }
     return data;
   }
 
@@ -883,22 +887,134 @@ class SupabaseService {
     }
   }
 
-  async fetchPlayerProgress(userId) {
-    if (!this.client || !userId) return null;
+  async syncCleanProgress({ playerId, stars, coins, level, pet, stats }) {
+    if (!this.client || !playerId) return;
     try {
-      const { data, error } = await this.client
-        .from("game_progress")
-        .select("*")
-        .eq("player_id", userId)
-        .maybeSingle();
-      if (error) {
-        console.warn("Fetch progress warning:", error);
-        return null;
-      }
-      return data;
-    } catch {
-      return null;
+      await this.client.from("game_progress").upsert({
+        player_id: playerId,
+        stars: typeof stars === 'number' ? stars : 5,
+        coins: typeof coins === 'number' ? coins : 30,
+        level: typeof level === 'number' ? level : 1,
+        pet_data: pet,
+        stats_data: stats,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn("syncCleanProgress error:", e);
     }
+  }
+
+  async fetchPlayerFullProgress(userId) {
+    const defaultData = {
+      stars: 5,
+      coins: 30,
+      level: 1,
+      pet: {
+        id: "cat",
+        name: "Bé Miu Miu",
+        emoji: "🐱",
+        sound: "Meo meo~",
+        hunger: 80,
+        happiness: 90,
+      },
+      stats: {
+        language: { completed: 0, correct: 0 },
+        math: { completed: 0, correct: 0 },
+        logic: { completed: 0, correct: 0 },
+      },
+    };
+
+    if (!this.client || !userId) return defaultData;
+
+    try {
+      // Truy vấn đồng thời nhật ký làm bài THẬT và cấu hình tiến độ từ Database Supabase
+      const [logsRes, progRes] = await Promise.all([
+        this.client
+          .from("learning_logs")
+          .select("subject, is_correct, score_earned")
+          .eq("player_id", userId),
+        this.client
+          .from("game_progress")
+          .select("*")
+          .eq("player_id", userId)
+          .maybeSingle(),
+      ]);
+
+      const logs = logsRes.data || [];
+      const prog = progRes.data || null;
+
+      // 1. Tính toán thống kê học tập THẬT từ bảng learning_logs
+      const stats = {
+        language: { completed: 0, correct: 0 },
+        math: { completed: 0, correct: 0 },
+        logic: { completed: 0, correct: 0 },
+      };
+
+      let totalEarnedScore = 0;
+      let totalCorrectAnswers = 0;
+
+      logs.forEach((log) => {
+        const sub = (log.subject || "").toLowerCase();
+        if (stats[sub]) {
+          stats[sub].completed += 1;
+          if (log.is_correct) {
+            stats[sub].correct += 1;
+            totalCorrectAnswers += 1;
+            totalEarnedScore += log.score_earned || 1;
+          }
+        }
+      });
+
+      // 2. Tính Sao Vàng & Cấp Độ dựa trên số câu học THẬT trong Database
+      // Khởi đầu: 5 sao, Cấp 1
+      const stars = 5 + totalEarnedScore;
+      const level = Math.max(1, Math.floor(totalEarnedScore / 3) + 1);
+
+      // 3. Tính Tiền Xu: 30 xu ban đầu + 15 xu/câu đúng - số xu đã tiêu (nếu có)
+      const calculatedCoins = Math.max(0, 30 + totalCorrectAnswers * 15);
+      let coins = calculatedCoins;
+      if (prog && typeof prog.coins === 'number' && logs.length > 0) {
+        coins = prog.coins;
+      }
+
+      // 4. Thú cưng: Nếu chưa từng chơi hoặc là Corgi bị sync nhầm lúc đầu -> dùng Bé Miu Miu
+      let pet = defaultData.pet;
+      if (prog?.pet_data) {
+        if (logs.length > 0 || prog.pet_data.id === 'cat') {
+          pet = prog.pet_data;
+        }
+      }
+
+      // 5. Cập nhật lại bản ghi game_progress chuẩn xác 100% trong Database
+      await this.syncCleanProgress({
+        playerId: userId,
+        stars,
+        coins,
+        level,
+        pet,
+        stats,
+      });
+
+      return {
+        stars,
+        coins,
+        level,
+        pet,
+        stats,
+      };
+    } catch (err) {
+      console.warn("fetchPlayerFullProgress error:", err);
+      return defaultData;
+    }
+  }
+
+  async fetchPlayerProgress(userId) {
+    return this.fetchPlayerFullProgress(userId);
+  }
+
+  async fetchUserLearningStats(userId) {
+    const full = await this.fetchPlayerFullProgress(userId);
+    return full.stats;
   }
 
   async resetPasswordForEmail(email) {

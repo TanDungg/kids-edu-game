@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, CheckCircle2, Sparkles, Brain } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Sparkles, Brain, Volume2, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dataManager } from '../services/dataManager';
 import { sounds } from '../utils/sound';
+import { getRealPhotoForWord, getRealPhotoForMath } from '../data/realImages';
+import GameResultModal from './GameResultModal';
+import GameErrorModal from './GameErrorModal';
+import GameHintModal from './GameHintModal';
 
 export default function LogicTower({ onBack, onCompleteLevel }) {
-  const [logicLevels, setLogicLevels] = useState(() => dataManager.getLogicLevels());
+  const [logicLevels, setLogicLevels] = useState(() => {
+    const list = dataManager.getShuffledLogic();
+    return (list && list.length > 0) ? list : dataManager.getLogicLevels();
+  });
   const [levelIndex, setLevelIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [wrongMsg, setWrongMsg] = useState('');
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isHintModalOpen, setIsHintModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     return dataManager.subscribe(() => {
-      setLogicLevels(dataManager.getLogicLevels());
+      const dbList = dataManager.getShuffledLogic();
+      if (dbList && dbList.length > 0) {
+        setLogicLevels(dbList);
+      }
     });
   }, []);
 
@@ -28,20 +40,31 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
   const resetLevel = () => {
     if (!currentLevel) return;
     setSelectedOption(null);
-    setIsSuccess(false);
-    setWrongMsg('');
+    setIsSuccessModalOpen(false);
+    setIsErrorModalOpen(false);
+    setIsHintModalOpen(false);
+    setErrorMessage('');
     if (currentLevel.promptVN) {
       sounds.speak(currentLevel.promptVN, 'vi-VN');
     }
   };
 
+  const handleReshuffleAndReset = () => {
+    sounds.playClick();
+    const shuffled = dataManager.getShuffledLogic();
+    if (shuffled && shuffled.length > 0) {
+      setLogicLevels(shuffled);
+    }
+    setLevelIndex(0);
+    resetLevel();
+  };
+
   const handlePickOption = (opt) => {
-    if (isSuccess || !currentLevel) return;
+    if (isSuccessModalOpen || isErrorModalOpen || !currentLevel) return;
     setSelectedOption(opt);
 
     if (String(opt) === String(currentLevel.answer)) {
-      setIsSuccess(true);
-      setWrongMsg('');
+      setIsErrorModalOpen(false);
       sounds.playSuccess();
       sounds.playCheer();
       sounds.playStar();
@@ -50,19 +73,28 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
         spread: 70,
         origin: { y: 0.6 }
       });
+      setIsSuccessModalOpen(true);
       onCompleteLevel('logic', { correct: true, starsEarned: 1, coinsEarned: 20 });
     } else {
       sounds.playError();
-      setWrongMsg(`Chưa đúng quy luật rồi bé ơi! ${opt} chưa phải đáp án đúng, bé quan sát kỹ lại nhé! ❌`);
+      setErrorMessage(`Đáp án "${opt}" chưa đúng quy luật rồi bé ơi! Bé quan sát kỹ lại nhé! 🔮`);
+      setIsErrorModalOpen(true);
       sounds.speak('Chưa đúng rồi, bé hãy thử nghĩ lại xem nào!', 'vi-VN');
     }
   };
 
   const handleNextLevel = () => {
     sounds.playClick();
+    setIsSuccessModalOpen(false);
+    setIsErrorModalOpen(false);
     if (logicLevels && logicLevels.length > 0) {
       setLevelIndex((prev) => (prev + 1) % logicLevels.length);
     }
+  };
+
+  const handleRetryAfterError = () => {
+    setIsErrorModalOpen(false);
+    setSelectedOption(null);
   };
 
   if (!logicLevels || logicLevels.length === 0 || !currentLevel) {
@@ -93,10 +125,17 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '6px',
-        marginBottom: '6px',
+        marginBottom: '8px',
         flexShrink: 0
       }}>
-        <button onClick={onBack} className="btn-kid btn-purple" style={{ padding: '5px 10px', fontSize: '11.5px', flexShrink: 0 }}>
+        <button 
+          onClick={() => {
+            sounds.playClick();
+            onBack();
+          }} 
+          className="btn-kid btn-purple" 
+          style={{ padding: '5px 10px', fontSize: '12px', flexShrink: 0 }}
+        >
           <ArrowLeft size={14} />
           <span>Bản đồ</span>
         </button>
@@ -104,10 +143,10 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
         <div style={{
           background: '#f5f3ff',
           color: '#6d28d9',
-          padding: '3px 10px',
+          padding: '4px 10px',
           borderRadius: '999px',
           fontWeight: 800,
-          fontSize: '11px',
+          fontSize: '11.5px',
           border: '1.5px solid #ddd6fe',
           display: 'flex',
           alignItems: 'center',
@@ -122,19 +161,28 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
           <span>Câu {levelIndex + 1}/{logicLevels.length}: {currentLevel.title}</span>
         </div>
 
-        <button onClick={resetLevel} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Làm lại câu đố này">
+        <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Xáo trộn lại toàn bộ câu đố logic">
           <RefreshCw size={12} />
         </button>
       </div>
 
-      {/* Main Puzzle Card */}
+      {/* Main Puzzle Card - Cohesive Centered Layout */}
       <div className="game-card-compact">
         {/* Top Prompt */}
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 2.4vh, 18px)', color: '#4c1d95', fontWeight: 800, margin: '0 0 2px' }}>
-            {currentLevel.promptVN}
-          </h3>
-          <p style={{ color: '#64748b', fontSize: 'clamp(11px, 1.8vh, 13px)', fontWeight: 600, margin: '0 0 6px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 2.5vh, 17.5px)', color: '#4c1d95', fontWeight: 900, margin: 0 }}>
+              {currentLevel.promptVN}
+            </h3>
+            <button
+              onClick={() => sounds.speak(currentLevel.promptVN, 'vi-VN')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b5cf6', display: 'flex', alignItems: 'center', padding: '2px' }}
+              title="Nghe lại câu đố"
+            >
+              <Volume2 size={16} />
+            </button>
+          </div>
+          <p style={{ color: '#64748b', fontSize: 'clamp(11px, 1.8vh, 12.5px)', fontWeight: 600, margin: '0 0 6px' }}>
             {currentLevel.promptEN}
           </p>
         </div>
@@ -145,13 +193,13 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 'clamp(5px, 1.5vw, 10px)',
-            margin: '4px 0',
+            gap: 'clamp(6px, 1.8vw, 12px)',
+            margin: 'auto 0',
             flexWrap: 'wrap',
-            padding: 'clamp(8px, 1.5vh, 14px)',
+            padding: 'clamp(10px, 2vh, 16px)',
             background: '#faf5ff',
-            borderRadius: '16px',
-            border: '2px dashed #c084fc',
+            borderRadius: '18px',
+            border: '2.5px dashed #c084fc',
             flexShrink: 0
           }}>
             {currentLevel.sequence.map((item, idx) => (
@@ -159,12 +207,12 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
                 key={idx}
                 className="pattern-item-box"
                 style={{
-                  width: 'clamp(38px, 7.5vh, 54px)',
-                  height: 'clamp(38px, 7.5vh, 54px)',
-                  fontSize: 'clamp(20px, 4vh, 28px)',
+                  width: 'clamp(42px, 8.5vh, 56px)',
+                  height: 'clamp(42px, 8.5vh, 56px)',
+                  fontSize: 'clamp(22px, 4.5vh, 30px)',
                   background: '#ffffff',
                   border: '2px solid #e9d5ff',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -176,23 +224,23 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             ))}
 
             <div
-              className="pattern-item-box"
+              className="pattern-item-box animate-bounce-slow"
               style={{
-                width: 'clamp(38px, 7.5vh, 54px)',
-                height: 'clamp(38px, 7.5vh, 54px)',
-                fontSize: 'clamp(20px, 4vh, 28px)',
-                background: isSuccess ? '#dcfce7' : '#f3e8ff',
-                border: isSuccess ? '2.5px solid #22c55e' : '2px dashed #9333ea',
-                borderRadius: '12px',
+                width: 'clamp(42px, 8.5vh, 56px)',
+                height: 'clamp(42px, 8.5vh, 56px)',
+                fontSize: 'clamp(22px, 4.5vh, 30px)',
+                background: '#f3e8ff',
+                border: '2.5px dashed #9333ea',
+                borderRadius: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 900,
-                color: isSuccess ? '#15803d' : '#7e22ce',
-                boxShadow: isSuccess ? '0 3px 0 #16a34a' : '0 3px 0 #c084fc'
+                color: '#7e22ce',
+                boxShadow: '0 3px 0 #c084fc'
               }}
             >
-              {isSuccess ? currentLevel.answer : '?'}
+              ?
             </div>
           </div>
         )}
@@ -202,52 +250,51 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
           <div style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${Math.min(currentLevel.items.length, 4)}, 1fr)`,
-            gap: 'clamp(6px, 1.5vw, 12px)',
-            margin: '4px 0',
+            gap: 'clamp(6px, 1.8vw, 12px)',
+            margin: 'auto 0',
             flexShrink: 0
           }}>
             {currentLevel.items.map((item, idx) => {
-              const isSelected = selectedOption === item.emoji;
-              const isAnswerCorrect = String(item.emoji) === String(currentLevel.answer);
-
-              let cardBg = '#f8fafc';
-              let cardBorder = '2px solid #e2e8f0';
-              let cardShadow = '0 3px 0 #cbd5e1';
-              let cardClass = '';
-
-              if (isSuccess && isAnswerCorrect) {
-                cardBg = '#dcfce7';
-                cardBorder = '2.5px solid #22c55e';
-                cardShadow = '0 3px 0 #16a34a';
-              } else if (isSelected && !isSuccess) {
-                cardBg = '#fef2f2';
-                cardBorder = '2.5px solid #ef4444';
-                cardShadow = '0 3px 0 #dc2626';
-                cardClass = 'animate-shake';
-              }
-
+              const photo = getRealPhotoForWord(item) || getRealPhotoForMath(item.emoji, item.name);
               return (
                 <div
                   key={idx}
                   onClick={() => handlePickOption(item.emoji)}
-                  className={cardClass}
+                  className="kid-card"
                   style={{
-                    padding: 'clamp(8px, 1.5vh, 14px) 6px',
-                    borderRadius: '14px',
-                    background: cardBg,
-                    border: cardBorder,
-                    boxShadow: cardShadow,
-                    cursor: isSuccess ? 'default' : 'pointer',
+                    padding: 'clamp(8px, 1.8vh, 12px) 6px',
+                    borderRadius: '16px',
+                    background: '#f8fafc',
+                    border: '2px solid #e2e8f0',
+                    boxShadow: '0 3px 0 #cbd5e1',
+                    cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     textAlign: 'center'
                   }}
                 >
-                  <div style={{ fontSize: 'clamp(28px, 5.5vh, 42px)', lineHeight: 1, marginBottom: '4px' }}>
-                    {item.emoji}
+                  <div style={{ height: 'clamp(36px, 7vh, 52px)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
+                    {photo ? (
+                      <img 
+                        src={photo} 
+                        alt={item.name} 
+                        style={{
+                          width: 'clamp(36px, 7vh, 52px)',
+                          height: 'clamp(36px, 7vh, 52px)',
+                          objectFit: 'cover',
+                          borderRadius: '12px'
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <span style={{ fontSize: 'clamp(28px, 5vh, 40px)', display: photo ? 'none' : 'block', lineHeight: 1 }}>
+                      {item.emoji}
+                    </span>
                   </div>
-                  <div style={{ fontWeight: 800, color: isSuccess && isAnswerCorrect ? '#15803d' : '#334155', fontSize: 'clamp(11px, 1.8vh, 13px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontWeight: 800, color: '#334155', fontSize: 'clamp(11px, 1.6vh, 12.5px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.name}
-                    {isSuccess && isAnswerCorrect && ' ✓'}
                   </div>
                 </div>
               );
@@ -262,50 +309,53 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
             justifyContent: 'center',
             alignItems: 'flex-end',
             gap: 'clamp(8px, 2vw, 16px)',
-            margin: '4px 0',
+            margin: 'auto 0',
             flexWrap: 'wrap',
             flexShrink: 0
           }}>
             {currentLevel.items.map((item, idx) => {
-              const isSelected = selectedOption === item.emoji;
-              const isAnswerCorrect = String(item.emoji) === String(currentLevel.answer);
-
-              let cardBg = '#f8fafc';
-              let cardBorder = '2px solid #e2e8f0';
-              let cardShadow = '0 3px 0 #cbd5e1';
-              let cardClass = '';
-
-              if (isSuccess && isAnswerCorrect) {
-                cardBg = '#dcfce7';
-                cardBorder = '2.5px solid #22c55e';
-                cardShadow = '0 3px 0 #16a34a';
-              } else if (isSelected && !isSuccess) {
-                cardBg = '#fef2f2';
-                cardBorder = '2.5px solid #ef4444';
-                cardShadow = '0 3px 0 #dc2626';
-                cardClass = 'animate-shake';
-              }
-
+              const photo = getRealPhotoForWord(item) || getRealPhotoForMath(item.emoji, item.name);
+              const imgDim = 32 + (item.size || 1) * 16;
               return (
                 <div
                   key={idx}
                   onClick={() => handlePickOption(item.emoji)}
-                  className={cardClass}
+                  className="kid-card"
                   style={{
-                    padding: 'clamp(8px, 1.5vh, 14px) clamp(10px, 2.5vw, 18px)',
-                    borderRadius: '14px',
-                    background: cardBg,
-                    border: cardBorder,
-                    boxShadow: cardShadow,
-                    cursor: isSuccess ? 'default' : 'pointer',
+                    padding: 'clamp(8px, 1.8vh, 14px) clamp(8px, 2vw, 14px)',
+                    borderRadius: '16px',
+                    background: '#f8fafc',
+                    border: '2px solid #e2e8f0',
+                    boxShadow: '0 3px 0 #cbd5e1',
+                    cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ fontSize: `${22 + (item.size || 1) * 12}px`, lineHeight: 1 }}>{item.emoji}</div>
-                  <div style={{ fontWeight: 800, color: isSuccess && isAnswerCorrect ? '#15803d' : '#334155', marginTop: '4px', fontSize: '11.5px' }}>
+                  <div style={{ height: `${imgDim}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {photo ? (
+                      <img 
+                        src={photo} 
+                        alt={item.name} 
+                        style={{
+                          width: `${imgDim}px`,
+                          height: `${imgDim}px`,
+                          objectFit: 'cover',
+                          borderRadius: '14px',
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <span style={{ fontSize: `${24 + (item.size || 1) * 12}px`, display: photo ? 'none' : 'block', lineHeight: 1 }}>
+                      {item.emoji}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 800, color: '#334155', marginTop: '4px', fontSize: '12px' }}>
                     {item.name}
-                    {isSuccess && isAnswerCorrect && ' ✓'}
                   </div>
                 </div>
               );
@@ -315,103 +365,89 @@ export default function LogicTower({ onBack, onCompleteLevel }) {
 
         {/* Pattern Choice Options Buttons */}
         {currentLevel.type === 'pattern' && (
-          <div style={{ margin: '4px 0', flexShrink: 0, textAlign: 'center' }}>
-            <div style={{ fontSize: 'clamp(12px, 2vh, 13.5px)', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+          <div style={{ margin: '6px 0', flexShrink: 0, textAlign: 'center' }}>
+            <div style={{ fontSize: 'clamp(12.5px, 2vh, 14px)', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
               Bé hãy chọn hình còn thiếu:
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(6px, 1.8vw, 12px)', flexWrap: 'wrap' }}>
-              {currentLevel.options.map((opt, idx) => {
-                const isSelected = selectedOption === opt;
-                const isAnswerCorrect = String(opt) === String(currentLevel.answer);
-
-                let btnClass = 'btn-yellow';
-                if (isSuccess && isAnswerCorrect) {
-                  btnClass = 'btn-green';
-                } else if (isSelected && !isSuccess) {
-                  btnClass = 'btn-red animate-shake';
-                } else if (isSuccess) {
-                  btnClass = 'btn-gray';
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    disabled={isSuccess}
-                    onClick={() => handlePickOption(opt)}
-                    className={`btn-kid ${btnClass}`}
-                    style={{
-                      width: 'clamp(44px, 8vh, 56px)',
-                      height: 'clamp(44px, 8vh, 56px)',
-                      fontSize: 'clamp(22px, 4vh, 28px)',
-                      borderRadius: '12px',
-                      padding: 0
-                    }}
-                  >
-                    {opt}
-                    {isSuccess && isAnswerCorrect && ' ✓'}
-                  </button>
-                );
-              })}
+              {currentLevel.options.map((opt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handlePickOption(opt)}
+                  className="btn-kid btn-yellow"
+                  style={{
+                    width: 'clamp(46px, 8.5vh, 58px)',
+                    height: 'clamp(46px, 8.5vh, 58px)',
+                    fontSize: 'clamp(24px, 4.2vh, 30px)',
+                    borderRadius: '14px',
+                    padding: 0
+                  }}
+                >
+                  {opt}
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Explicit Wrong Feedback */}
-        {wrongMsg && (
-          <div className="animate-shake" style={{
-            background: '#fef2f2',
-            border: '1.5px solid #fecaca',
-            color: '#b91c1c',
-            padding: '4px 10px',
-            borderRadius: '10px',
-            fontSize: '11.5px',
-            fontWeight: 800,
-            marginTop: '4px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            flexShrink: 0
-          }}>
-            <span>❌</span>
-            <span>{wrongMsg}</span>
-          </div>
-        )}
-
-        {/* Win Banner */}
-        {isSuccess && (
-          <div className="animate-pop-in" style={{
-            marginTop: '6px',
-            padding: '8px 12px',
-            background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-            borderRadius: '14px',
-            border: '2px solid #22c55e',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '8px',
-            flexShrink: 0
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={24} color="#16a34a" />
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#14532d' }}>
-                  Bé tư duy logic xuất sắc quá! 🧠✨
-                </div>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#16a34a' }}>
-                  +1 Sao Vàng 🌟 &middot; +20 Xu 🪙
-                </div>
-              </div>
-            </div>
-
-            <button onClick={handleNextLevel} className="btn-kid btn-green" style={{ padding: '6px 14px', fontSize: '12.5px' }}>
-              <span>Câu tiếp theo</span>
-              <Sparkles size={14} />
+        {/* Hint Trigger Button */}
+        {currentLevel.hint && (
+          <div style={{ marginTop: '4px', textAlign: 'center' }}>
+            <button 
+              onClick={() => {
+                sounds.playClick();
+                setIsHintModalOpen(true);
+              }}
+              style={{ 
+                background: '#f5f3ff', 
+                border: '1.5px solid #ddd6fe', 
+                color: '#7c3aed', 
+                fontSize: '12px', 
+                fontWeight: 800, 
+                cursor: 'pointer', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '4px',
+                padding: '4px 12px',
+                borderRadius: '999px'
+              }}
+            >
+              <HelpCircle size={13} />
+              <span>Gợi ý quy luật 💡</span>
             </button>
           </div>
         )}
       </div>
+
+      {/* Result Modal: Success Celebratory Popup */}
+      <GameResultModal
+        isOpen={isSuccessModalOpen}
+        type="logic"
+        title="Xuất sắc! Bé tư duy logic tuyệt vời! 🧠✨"
+        subtitle="Bé đã giải mã thành công bí ẩn của Tháp Logic!"
+        starsEarned={1}
+        coinsEarned={20}
+        onNext={handleNextLevel}
+        onReplay={resetLevel}
+        onGoMap={onBack}
+      />
+
+      {/* Error / Wrong Attempt Modal */}
+      <GameErrorModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        onRetry={handleRetryAfterError}
+        onOpenHint={() => setIsHintModalOpen(true)}
+        message={errorMessage || 'Chưa đúng quy luật rồi bé ơi! Bé thử quan sát lại nhé!'}
+        hintAvailable={Boolean(currentLevel.hint)}
+      />
+
+      {/* Hint Modal */}
+      <GameHintModal
+        isOpen={isHintModalOpen}
+        onClose={() => setIsHintModalOpen(false)}
+        hintText={currentLevel.hint || 'Bé quan sát sự lặp lại theo thứ tự của các hình nhé!'}
+      />
     </div>
   );
 }
-

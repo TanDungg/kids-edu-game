@@ -252,6 +252,10 @@ class DataManager {
     return this.mathLevels;
   }
 
+  getShuffledMath() {
+    return shuffleArray(this.mathLevels);
+  }
+
   saveMathLevels(levels) {
     this.mathLevels = levels;
     localStorage.setItem(STORAGE_KEY_MATH, JSON.stringify(levels));
@@ -291,6 +295,10 @@ class DataManager {
   // ===================== 3. LOGIC & TƯ DUY (LOGIC TOWER) =====================
   getLogicLevels() {
     return this.logicLevels;
+  }
+
+  getShuffledLogic() {
+    return shuffleArray(this.logicLevels);
   }
 
   saveLogicLevels(levels) {

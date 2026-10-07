@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, ArrowLeft, RefreshCw, CheckCircle2, Sparkles, HelpCircle } from 'lucide-react';
+import { Volume2, ArrowLeft, RefreshCw, Sparkles, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dataManager, shuffleArray } from '../services/dataManager';
 import { sounds } from '../utils/sound';
+import { getRealPhotoForWord } from '../data/realImages';
+import GameResultModal from './GameResultModal';
+import GameErrorModal from './GameErrorModal';
+import GameHintModal from './GameHintModal';
 
 const DEFAULT_WORDS = [
   { id: 1, vn: 'Con Mèo', en: 'Cat', emoji: '🐱', theme: 'Động vật', targetVN: 'MÈO', targetEN: 'CAT', hintVN: 'Loài vật thích bắt chuột, kêu meo meo', hintEN: 'A small pet that purrs' },
@@ -13,7 +17,6 @@ const DEFAULT_WORDS = [
 ];
 
 export default function LanguageValley({ onBack, onCompleteLevel }) {
-  // Shuffled question list for this play session
   const [wordsList, setWordsList] = useState(() => {
     const list = dataManager.getShuffledWords();
     return (list && list.length > 0) ? list : DEFAULT_WORDS;
@@ -22,9 +25,10 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   const [mode, setMode] = useState('VN'); // 'VN' or 'EN'
   const [currentGuess, setCurrentGuess] = useState([]);
   const [scrambledLetters, setScrambledLetters] = useState([]);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [showHint, setShowHint] = useState(false);
-  const [wrongMsg, setWrongMsg] = useState('');
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isHintModalOpen, setIsHintModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     return dataManager.subscribe(() => {
@@ -39,7 +43,6 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     ? (wordsList[levelIndex % wordsList.length] || wordsList[0]) 
     : DEFAULT_WORDS[0];
 
-  // Parse words cleanly into words array to support multi-word expressions (e.g. ['CON', 'MÈO'])
   const getCleanTargetWords = (lvl, currentMode) => {
     if (!lvl) return ['MÈO'];
     let raw = currentMode === 'VN' 
@@ -53,7 +56,6 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   const targetWord = targetWords.join('');
   const totalLetters = targetWord.length;
 
-  // Setup scrambled letters when level changes or mode changes
   useEffect(() => {
     if (targetWord) {
       resetPuzzle();
@@ -62,15 +64,13 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
 
   const resetPuzzle = () => {
     if (!targetWord) return;
-    setIsSuccess(false);
-    setWrongMsg('');
+    setIsSuccessModalOpen(false);
+    setIsErrorModalOpen(false);
+    setIsHintModalOpen(false);
+    setErrorMessage('');
     setCurrentGuess([]);
-    setShowHint(false);
 
-    // Target letters
     const letters = targetWord.split('');
-
-    // Plausible distractor letters that do not duplicate target letters
     const alphabet = 'ABCDEGHKLMNOPQRSTUVXY';
     const distractors = [];
     let attempts = 0;
@@ -82,7 +82,6 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
       }
     }
 
-    // Combine and shuffle with fixed static slots
     const combined = [...letters, ...distractors];
     const shuffled = shuffleArray(
       combined.map((char, index) => ({ 
@@ -96,47 +95,41 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
   };
 
   const handlePickLetter = (item) => {
-    if (isSuccess || item.isUsed) return;
+    if (isSuccessModalOpen || isErrorModalOpen || item.isUsed) return;
     sounds.playClick();
-    setWrongMsg('');
 
-    // Check if adding this letter fits the length
     if (currentGuess.length < totalLetters) {
       const nextGuess = [...currentGuess, item];
       setCurrentGuess(nextGuess);
       
-      // Mark as used in scrambledLetters WITHOUT shifting or re-sorting remaining letters
       setScrambledLetters(prev => prev.map(l => l.id === item.id ? { ...l, isUsed: true } : l));
 
-      // If word is complete, check answer
       if (nextGuess.length === totalLetters) {
         const guessedString = nextGuess.map(i => i.char).join('');
         if (guessedString === targetWord) {
           handleWin();
         } else {
           sounds.playError();
-          setWrongMsg('Chưa chính xác rồi bé ơi! Bé bấm vào ô chữ màu đỏ để sửa lại nhé! ❌');
+          setErrorMessage(`Từ "${guessedString}" chưa đúng rồi bé ơi! Bé thử lại để tìm từ chính xác nhé!`);
+          setIsErrorModalOpen(true);
         }
       }
     }
   };
 
   const handleRemoveLetter = (indexToRemove) => {
-    if (isSuccess) return;
+    if (isSuccessModalOpen || isErrorModalOpen) return;
     sounds.playClick();
-    setWrongMsg('');
     const removedItem = currentGuess[indexToRemove];
     setCurrentGuess(currentGuess.filter((_, idx) => idx !== indexToRemove));
     
-    // Put letter back at its EXACT original spot
     if (removedItem) {
       setScrambledLetters(prev => prev.map(l => l.id === removedItem.id ? { ...l, isUsed: false } : l));
     }
   };
 
   const handleWin = () => {
-    setIsSuccess(true);
-    setWrongMsg('');
+    setIsErrorModalOpen(false);
     sounds.playSuccess();
     sounds.playCheer();
     sounds.playStar();
@@ -145,6 +138,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
       spread: 70,
       origin: { y: 0.6 }
     });
+    setIsSuccessModalOpen(true);
     onCompleteLevel('language', { correct: true, starsEarned: 1, coinsEarned: 15 });
   };
 
@@ -158,6 +152,8 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
 
   const handleNextWord = () => {
     sounds.playClick();
+    setIsSuccessModalOpen(false);
+    setIsErrorModalOpen(false);
     setLevelIndex((prev) => (prev + 1) % (wordsList.length || 1));
   };
 
@@ -166,6 +162,13 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     setWordsList(dataManager.getShuffledWords());
     setLevelIndex(0);
     resetPuzzle();
+  };
+
+  const handleRetryAfterError = () => {
+    setIsErrorModalOpen(false);
+    // Reset the slots back to scramble list
+    setCurrentGuess([]);
+    setScrambledLetters(prev => prev.map(l => ({ ...l, isUsed: false })));
   };
 
   if (!wordsList || wordsList.length === 0 || !currentLevel) {
@@ -188,35 +191,41 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
     );
   }
 
-  // Global slot counter for multi-word groupings
   let currentSlotIndexTracker = 0;
 
   return (
     <div className="game-screen-wrapper">
-      {/* Top Bar - Clean Responsive Single-Line Controls */}
+      {/* Top Bar */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '6px',
-        marginBottom: '6px',
+        marginBottom: '8px',
         flexShrink: 0
       }}>
-        <button onClick={onBack} className="btn-kid btn-blue" style={{ padding: '5px 10px', fontSize: '11.5px', flexShrink: 0 }}>
+        <button 
+          onClick={() => {
+            sounds.playClick();
+            onBack();
+          }} 
+          className="btn-kid btn-blue" 
+          style={{ padding: '5px 10px', fontSize: '12px', flexShrink: 0 }}
+        >
           <ArrowLeft size={14} />
           <span>Bản đồ</span>
         </button>
 
-        {/* Language Switcher Segmented Control */}
+        {/* Language Switcher */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           background: '#ffffff',
           padding: '2px',
           borderRadius: '999px',
-          border: '2px solid #e2e8f0',
+          border: '1.5px solid #e2e8f0',
           boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-          height: '30px',
+          height: '32px',
           boxSizing: 'border-box'
         }}>
           <button
@@ -225,9 +234,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '2px 8px',
+              padding: '3px 8px',
               borderRadius: '999px',
-              fontSize: '11px',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'inherit',
               transition: 'all 0.2s ease',
@@ -240,7 +249,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
               outline: 'none'
             }}
           >
-            <span>🇻🇳</span> <span className="hide-on-mobile">Tiếng </span>Việt
+            <span>🇻🇳</span> <span>Việt</span>
           </button>
           <button
             type="button"
@@ -248,9 +257,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             style={{
               border: 'none',
               cursor: 'pointer',
-              padding: '2px 8px',
+              padding: '3px 8px',
               borderRadius: '999px',
-              fontSize: '11px',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'inherit',
               transition: 'all 0.2s ease',
@@ -263,7 +272,7 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
               outline: 'none'
             }}
           >
-            <span>🇬🇧</span> English
+            <span>🇬🇧</span> <span>English</span>
           </button>
         </div>
 
@@ -272,48 +281,110 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           <div style={{
             background: '#fdf2f8',
             color: '#db2777',
-            padding: '3px 7px',
+            padding: '3px 8px',
             borderRadius: '999px',
             fontWeight: 800,
-            fontSize: '10.5px',
+            fontSize: '11px',
             border: '1.5px solid #fbcfe8',
             whiteSpace: 'nowrap'
           }}>
             {levelIndex + 1}/{wordsList.length}
           </div>
-          <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Xáo trộn lại câu hỏi">
+          <button onClick={handleReshuffleAndReset} className="btn-kid btn-yellow" style={{ padding: '5px 7px' }} title="Xáo trộn lại toàn bộ câu hỏi">
             <RefreshCw size={12} />
           </button>
         </div>
       </div>
 
-      {/* Main Flashcard - Compact single-screen layout */}
+      {/* Main Flashcard - Cohesive & Centered Layout */}
       <div className="game-card-compact">
-        {/* Top: Mascot & Theme */}
+        {/* Top: Theme & Mascot */}
         <div style={{ textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '2px 10px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '10.5px', marginBottom: '2px' }}>
+          <div style={{ display: 'inline-block', background: '#fdf2f8', padding: '2px 10px', borderRadius: '999px', color: '#db2777', fontWeight: 800, fontSize: '11px', marginBottom: '3px' }}>
             Chủ đề: {currentLevel.theme}
           </div>
 
-          <div style={{ fontSize: 'clamp(40px, 9vh, 64px)', margin: '1px 0', lineHeight: 1 }} className="animate-bounce-slow">
-            {currentLevel.emoji}
+          {/* Real Photo Illustration with 3D Frame */}
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0' }}>
+            {getRealPhotoForWord(currentLevel) ? (
+              <div 
+                className="animate-pop-in"
+                style={{
+                  position: 'relative',
+                  width: 'clamp(94px, 16vh, 126px)',
+                  height: 'clamp(94px, 16vh, 126px)',
+                  borderRadius: '24px',
+                  padding: '3px',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #fce7f3 100%)',
+                  boxShadow: '0 12px 24px -4px rgba(219, 39, 119, 0.22), 0 4px 8px rgba(0,0,0,0.06)',
+                  border: '2.5px solid #fbcfe8'
+                }}
+              >
+                <img 
+                  src={getRealPhotoForWord(currentLevel)} 
+                  alt={currentLevel.vn}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '20px',
+                    display: 'block'
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div style={{
+                  display: 'none',
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '56px'
+                }}>
+                  {currentLevel.emoji}
+                </div>
+                {/* Cute corner badge */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-5px',
+                  right: '-5px',
+                  background: '#ffffff',
+                  borderRadius: '50%',
+                  padding: '2px',
+                  fontSize: '18px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  border: '1.5px solid #fbcfe8'
+                }}>
+                  {currentLevel.emoji}
+                </div>
+              </div>
+            ) : (
+              <div 
+                style={{ fontSize: 'clamp(52px, 11vh, 74px)', margin: '2px 0', lineHeight: 1 }} 
+                className="animate-bounce-slow"
+              >
+                {currentLevel.emoji}
+              </div>
+            )}
           </div>
 
           {/* Prompt */}
-          <p style={{ color: '#334155', fontSize: 'clamp(12px, 2vh, 14px)', fontWeight: 800, margin: '2px 0 6px' }}>
+          <h3 style={{ color: '#1e293b', fontSize: 'clamp(13.5px, 2.2vh, 15.5px)', fontWeight: 800, margin: '2px 0 6px', lineHeight: 1.3 }}>
             {mode === 'VN' 
               ? 'Bé nhìn hình đoán xem đây là gì và ghép chữ nhé!' 
               : 'Look at the picture and tap the letters to spell!'}
-          </p>
+          </h3>
         </div>
 
-        {/* Word Target Slots - Grouped by Word for Proper Line Breaking */}
+        {/* Word Target Slots */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 'clamp(4px, 1.5vw, 10px)',
-          margin: '4px 0',
+          gap: 'clamp(6px, 2vw, 12px)',
+          margin: 'auto 0',
           flexWrap: 'wrap',
           width: '100%',
           boxSizing: 'border-box',
@@ -323,18 +394,18 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
             <div key={wIdx} style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 'clamp(2.5px, 1vw, 5px)',
+              gap: 'clamp(3px, 1.2vw, 6px)',
               background: targetWords.length > 1 ? '#f8fafc' : 'transparent',
-              padding: targetWords.length > 1 ? '2px 5px' : 0,
-              borderRadius: '10px',
+              padding: targetWords.length > 1 ? '4px 6px' : 0,
+              borderRadius: '12px',
               border: targetWords.length > 1 ? '1.5px dashed #cbd5e1' : 'none'
             }}>
               {word.split('').map((_, cIdx) => {
                 const slotIndex = currentSlotIndexTracker++;
                 const filled = currentGuess[slotIndex];
-                const slotWidth = Math.max(26, Math.min(42, Math.floor(250 / Math.max(word.length, 4))));
-                const slotHeight = Math.round(slotWidth * 1.2);
-                const slotFont = Math.round(slotWidth * 0.55);
+                const slotWidth = Math.max(34, Math.min(48, Math.floor(260 / Math.max(word.length, 4))));
+                const slotHeight = Math.round(slotWidth * 1.22);
+                const slotFont = Math.round(slotWidth * 0.56);
 
                 return (
                   <div
@@ -344,32 +415,16 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
                       width: `${slotWidth}px`,
                       height: `${slotHeight}px`,
                       fontSize: `${slotFont}px`,
-                      borderRadius: '8px',
+                      borderRadius: '10px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 900,
-                      border: isSuccess
-                        ? '2.5px solid #22c55e'
-                        : filled
-                          ? (wrongMsg ? '2px solid #ef4444' : '2.5px solid #ec4899')
-                          : '2px dashed #cbd5e1',
-                      background: isSuccess
-                        ? '#dcfce7'
-                        : filled
-                          ? (wrongMsg ? '#fef2f2' : '#fdf2f8')
-                          : '#f8fafc',
-                      color: isSuccess
-                        ? '#15803d'
-                        : wrongMsg
-                          ? '#b91c1c'
-                          : '#be185d',
-                      cursor: (filled && !isSuccess) ? 'pointer' : 'default',
-                      boxShadow: isSuccess
-                        ? '0 2px 0 #16a34a'
-                        : filled
-                          ? (wrongMsg ? '0 2px 0 #dc2626' : '0 2px 0 #db2777')
-                          : 'none',
+                      border: filled ? '2.5px solid #ec4899' : '2.5px dashed #cbd5e1',
+                      background: filled ? '#fdf2f8' : '#f8fafc',
+                      color: '#be185d',
+                      cursor: filled ? 'pointer' : 'default',
+                      boxShadow: filled ? '0 3px 0 #db2777' : 'none',
                       flexShrink: 0,
                       transition: 'all 0.15s ease',
                       userSelect: 'none'
@@ -383,22 +438,23 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           ))}
         </div>
 
-        {/* Scrambled Letter Options to Pick - STATIC FIXED SLOTS (Never jump around) */}
+        {/* Scrambled Letter Options to Pick */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'clamp(4px, 1.2vw, 8px)',
+          gap: 'clamp(6px, 1.8vw, 10px)',
           flexWrap: 'wrap',
-          maxWidth: '420px',
-          margin: '0 auto',
-          minHeight: '44px'
+          maxWidth: '400px',
+          margin: '6px auto',
+          minHeight: '48px',
+          alignItems: 'center'
         }}>
           {scrambledLetters.map((item) => (
             <div 
               key={item.id}
               style={{
-                width: 'clamp(34px, 8.5vw, 44px)',
-                height: 'clamp(38px, 9.5vw, 48px)',
+                width: 'clamp(40px, 9.5vw, 48px)',
+                height: 'clamp(44px, 10.5vw, 54px)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -408,9 +464,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
                 <div style={{
                   width: '100%',
                   height: '100%',
-                  borderRadius: '10px',
-                  border: '1.5px dashed #e2e8f0',
-                  background: 'rgba(241, 245, 249, 0.6)'
+                  borderRadius: '12px',
+                  border: '2px dashed #e2e8f0',
+                  background: 'rgba(241, 245, 249, 0.7)'
                 }} />
               ) : (
                 <button
@@ -419,9 +475,9 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
                   style={{
                     width: '100%',
                     height: '100%',
-                    fontSize: 'clamp(16px, 4vw, 20px)',
+                    fontSize: 'clamp(18px, 4.5vw, 22px)',
                     fontWeight: 900,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     padding: 0
                   }}
                 >
@@ -432,97 +488,65 @@ export default function LanguageValley({ onBack, onCompleteLevel }) {
           ))}
         </div>
 
-        {/* Clear Wrong Feedback Message */}
-        {wrongMsg && (
-          <div className="animate-shake" style={{
-            background: '#fef2f2',
-            border: '1.5px solid #fecaca',
-            color: '#b91c1c',
-            padding: '6px 12px',
-            borderRadius: '10px',
-            fontSize: '12px',
-            fontWeight: 800,
-            marginTop: '8px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <span>❌</span>
-            <span>{wrongMsg}</span>
-          </div>
-        )}
-
-        {/* Success Modal: REVEAL WORD & PRONUNCIATION BUTTONS ONLY AFTER SOLVED */}
-        {isSuccess && (
-          <div className="animate-pop-in" style={{
-            marginTop: '14px',
-            padding: '14px',
-            background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
-            borderRadius: '18px',
-            border: '2px solid #22c55e',
-            textAlign: 'center'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '4px' }}>
-              <CheckCircle2 size={24} color="#16a34a" />
-              <span style={{ fontSize: '17px', fontWeight: 900, color: '#14532d' }}>
-                Chính xác! Bé giỏi quá! 🎉
-              </span>
-            </div>
-
-            <p style={{ fontSize: '12.5px', color: '#166534', fontWeight: 700, marginBottom: '10px' }}>
-              Bé hãy bấm vào loa để nghe và đọc theo phát âm chuẩn nhé:
-            </p>
-
-            {/* Clickable Pronunciation Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <button 
-                onClick={handleSpeakVN} 
-                className="btn-kid btn-pink" 
-                style={{ padding: '8px 16px', fontSize: '13.5px' }}
-              >
-                <Volume2 size={18} />
-                <span>🇻🇳 {currentLevel.vn}</span>
-              </button>
-              <button 
-                onClick={handleSpeakEN} 
-                className="btn-kid btn-blue" 
-                style={{ padding: '8px 16px', fontSize: '13.5px' }}
-              >
-                <Volume2 size={18} />
-                <span>🇬🇧 {currentLevel.en}</span>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#15803d' }}>
-                +1 Sao 🌟 &middot; +15 Xu 🪙
-              </span>
-              <button onClick={handleNextWord} className="btn-kid btn-green" style={{ padding: '8px 18px', fontSize: '13.5px' }}>
-                <span>Từ tiếp theo</span>
-                <Sparkles size={15} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Hint Section */}
-        {!isSuccess && (
-          <div style={{ marginTop: '10px' }}>
-            <button 
-              onClick={() => setShowHint(!showHint)}
-              style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-            >
-              <HelpCircle size={13} />
-              {showHint ? 'Ẩn gợi ý' : 'Bé cần gợi ý không?'}
-            </button>
-            {showHint && (
-              <div style={{ marginTop: '4px', fontSize: '12.5px', color: '#0369a1', background: '#f0f9ff', padding: '6px 12px', borderRadius: '10px', display: 'inline-block' }}>
-                💡 {mode === 'VN' ? (currentLevel.hintVN || currentLevel.hint_vn || `Đây là từ "${currentLevel.vn}"`) : (currentLevel.hintEN || currentLevel.hint_en || `This is "${currentLevel.en}"`)}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Hint Trigger Button */}
+        <div style={{ marginTop: '6px', textAlign: 'center' }}>
+          <button 
+            onClick={() => {
+              sounds.playClick();
+              setIsHintModalOpen(true);
+            }}
+            style={{ 
+              background: '#f0f9ff', 
+              border: '1.5px solid #bae6fd', 
+              color: '#0284c7', 
+              fontSize: '12px', 
+              fontWeight: 800, 
+              cursor: 'pointer', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '4px',
+              padding: '5px 12px',
+              borderRadius: '999px'
+            }}
+          >
+            <HelpCircle size={14} />
+            <span>Bé cần gợi ý không? 💡</span>
+          </button>
+        </div>
       </div>
+
+      {/* Result Modal: Success Celebratory Popup */}
+      <GameResultModal
+        isOpen={isSuccessModalOpen}
+        type="language"
+        title="Chính xác! Bé giỏi quá! 🎉"
+        subtitle="Bé hãy bấm vào loa để nghe và đọc theo phát âm chuẩn nhé:"
+        starsEarned={1}
+        coinsEarned={15}
+        wordData={currentLevel}
+        onSpeakVN={handleSpeakVN}
+        onSpeakEN={handleSpeakEN}
+        onNext={handleNextWord}
+        onReplay={resetPuzzle}
+        onGoMap={onBack}
+      />
+
+      {/* Error / Wrong Attempt Modal */}
+      <GameErrorModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        onRetry={handleRetryAfterError}
+        onOpenHint={() => setIsHintModalOpen(true)}
+        message={errorMessage || 'Chưa chính xác rồi bé ơi! Bé bấm thử lại để xếp lại các chữ cái nhé!'}
+        hintAvailable={true}
+      />
+
+      {/* Hint Modal */}
+      <GameHintModal
+        isOpen={isHintModalOpen}
+        onClose={() => setIsHintModalOpen(false)}
+        hintText={mode === 'VN' ? (currentLevel.hintVN || currentLevel.hint_vn || `Đây là từ "${currentLevel.vn}"`) : (currentLevel.hintEN || currentLevel.hint_en || `This is "${currentLevel.en}"`)}
+      />
     </div>
   );
 }

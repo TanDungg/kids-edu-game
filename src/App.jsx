@@ -39,17 +39,36 @@ function updateHashForScreen(screen) {
   } catch {}
 }
 
+const DEFAULT_PROGRESS = {
+  stars: 5,
+  coins: 30,
+  level: 1,
+  pet: {
+    id: "cat",
+    name: "Bé Miu Miu",
+    emoji: "🐱",
+    sound: "Meo meo~",
+    hunger: 80,
+    happiness: 90,
+  },
+  stats: {
+    language: { completed: 0, correct: 0 },
+    math: { completed: 0, correct: 0 },
+    logic: { completed: 0, correct: 0 },
+  },
+};
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState(() => getScreenFromHash());
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [stars, setStars] = useState(() => {
-    return parseInt(localStorage.getItem("kids_stars") || "5", 10);
+    return parseInt(localStorage.getItem("kids_stars") || String(DEFAULT_PROGRESS.stars), 10);
   });
   const [coins, setCoins] = useState(() => {
-    return parseInt(localStorage.getItem("kids_coins") || "30", 10);
+    return parseInt(localStorage.getItem("kids_coins") || String(DEFAULT_PROGRESS.coins), 10);
   });
   const [level, setLevel] = useState(() => {
-    return parseInt(localStorage.getItem("kids_level") || "1", 10);
+    return parseInt(localStorage.getItem("kids_level") || String(DEFAULT_PROGRESS.level), 10);
   });
   const [pet, setPet] = useState(() => {
     const saved = localStorage.getItem("kids_pet");
@@ -59,26 +78,16 @@ export default function App() {
       } catch {}
     }
     const pets = dataManager.getPets();
-    return pets && pets.length > 0
-      ? pets[0]
-      : {
-          id: "cat",
-          name: "Bé Miu Miu",
-          emoji: "🐱",
-          sound: "Meo meo~",
-          hunger: 80,
-          happiness: 90,
-        };
+    return pets && pets.length > 0 ? pets[0] : DEFAULT_PROGRESS.pet;
   });
   const [stats, setStats] = useState(() => {
     const saved = localStorage.getItem("kids_stats");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          language: { completed: 0, correct: 0 },
-          math: { completed: 0, correct: 0 },
-          logic: { completed: 0, correct: 0 },
-        };
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return DEFAULT_PROGRESS.stats;
   });
 
   const [isMuted, setIsMuted] = useState(false);
@@ -103,6 +112,9 @@ export default function App() {
       if (session?.user) {
         setCurrentUser(session.user);
         loadCloudProgress(session.user.id);
+      } else {
+        // Chưa đăng nhập -> reset về mặc định sạch
+        applyDefaultProgress();
       }
       setIsAuthLoading(false);
     }).catch(() => {
@@ -115,6 +127,8 @@ export default function App() {
         setCurrentUser(user);
         if (event === "SIGNED_IN" && user) {
           loadCloudProgress(user.id);
+        } else if (event === "SIGNED_OUT") {
+          applyDefaultProgress();
         }
       },
     );
@@ -162,53 +176,75 @@ export default function App() {
     }
   }, [currentUser, currentScreen, isAuthLoading, isAdmin]);
 
+  const applyDefaultProgress = () => {
+    setStars(DEFAULT_PROGRESS.stars);
+    setCoins(DEFAULT_PROGRESS.coins);
+    setLevel(DEFAULT_PROGRESS.level);
+    setPet(DEFAULT_PROGRESS.pet);
+    setStats(DEFAULT_PROGRESS.stats);
+    localStorage.removeItem("kids_stars");
+    localStorage.removeItem("kids_coins");
+    localStorage.removeItem("kids_level");
+    localStorage.removeItem("kids_pet");
+    localStorage.removeItem("kids_stats");
+  };
+
   const loadCloudProgress = async (userId) => {
+    if (!userId) return;
     try {
-      const cloud = await supabaseService.fetchPlayerProgress(userId);
-      if (cloud) {
-        if (typeof cloud.stars === "number") setStars(cloud.stars);
-        if (typeof cloud.coins === "number") setCoins(cloud.coins);
-        if (typeof cloud.level === "number") setLevel(cloud.level);
-        if (cloud.pet_data) setPet(cloud.pet_data);
-        if (cloud.stats_data) setStats(cloud.stats_data);
-      } else {
-        // Tài khoản mới: tự động đồng bộ tiến độ hiện tại lên đám mây
-        supabaseService.syncProgress(
-          { stars, coins, level, pet, stats },
-          userId,
-        );
+      const fullData = await supabaseService.fetchPlayerFullProgress(userId);
+      if (fullData) {
+        setStars(fullData.stars);
+        setCoins(fullData.coins);
+        setLevel(fullData.level);
+        setPet(fullData.pet);
+        setStats(fullData.stats);
       }
     } catch (e) {
       console.warn("Lỗi tải tiến độ đám mây:", e);
     }
   };
 
-  // Sync to LocalStorage and directly to Supabase Cloud
+  // Sync to LocalStorage and directly to Supabase Cloud khi có người dùng đăng nhập
   useEffect(() => {
+    if (isAuthLoading) return;
+
     localStorage.setItem("kids_stars", stars.toString());
     localStorage.setItem("kids_coins", coins.toString());
     localStorage.setItem("kids_level", level.toString());
     localStorage.setItem("kids_pet", JSON.stringify(pet));
     localStorage.setItem("kids_stats", JSON.stringify(stats));
 
-    // Cloud Supabase sync
-    supabaseService.syncProgress(
-      { stars, coins, level, pet, stats },
-      currentUser?.id,
-    );
-  }, [stars, coins, level, pet, stats, currentUser]);
+    if (currentUser?.id) {
+      supabaseService.syncCleanProgress({
+        playerId: currentUser.id,
+        stars,
+        coins,
+        level,
+        pet,
+        stats,
+      });
+    }
+  }, [stars, coins, level, pet, stats, currentUser, isAuthLoading]);
 
   const handleLogout = async () => {
     await supabaseService.signOut();
     setCurrentUser(null);
+    applyDefaultProgress();
     sounds.playClick();
   };
 
   const handleManualSync = () => {
-    supabaseService.syncProgress(
-      { stars, coins, level, pet, stats },
-      currentUser?.id,
-    );
+    if (currentUser?.id) {
+      supabaseService.syncCleanProgress({
+        playerId: currentUser.id,
+        stars,
+        coins,
+        level,
+        pet,
+        stats,
+      });
+    }
   };
 
   const handleToggleMute = () => {
@@ -216,25 +252,41 @@ export default function App() {
     setIsMuted(muted);
   };
 
-  const handleCompleteLevel = (subject, result) => {
+  const handleCompleteLevel = async (subject, result) => {
     if (result.correct) {
-      setStars((prev) => prev + (result.starsEarned || 1));
-      setCoins((prev) => prev + (result.coinsEarned || 15));
-      setLevel((prev) => Math.floor((stars + 1) / 3) + 1);
+      const earnedStars = result.starsEarned || 1;
+      const earnedCoins = result.coinsEarned || 15;
 
-      // Log activity directly to Supabase
-      supabaseService.logActivity(subject, true);
+      const newStars = stars + earnedStars;
+      const newCoins = coins + earnedCoins;
+      const newLevel = Math.max(1, Math.floor(newStars / 3));
 
-      setStats((prev) => {
-        const currentSub = prev[subject] || { completed: 0, correct: 0 };
-        return {
-          ...prev,
-          [subject]: {
-            completed: currentSub.completed + 1,
-            correct: currentSub.correct + 1,
-          },
-        };
-      });
+      setStars(newStars);
+      setCoins(newCoins);
+      setLevel(newLevel);
+
+      const currentSub = stats[subject] || { completed: 0, correct: 0 };
+      const newStats = {
+        ...stats,
+        [subject]: {
+          completed: currentSub.completed + 1,
+          correct: currentSub.correct + 1,
+        },
+      };
+      setStats(newStats);
+
+      // Ghi nhật ký học tập THẬT vào database Supabase learning_logs & cập nhật game_progress
+      if (currentUser?.id) {
+        await supabaseService.logActivity(subject, true, currentUser.id);
+        await supabaseService.syncCleanProgress({
+          playerId: currentUser.id,
+          stars: newStars,
+          coins: newCoins,
+          level: newLevel,
+          pet,
+          stats: newStats,
+        });
+      }
     }
   };
 
@@ -246,29 +298,11 @@ export default function App() {
     setPet(updatedPet);
   };
 
-  const handleResetData = () => {
-    localStorage.clear();
-    setStars(5);
-    setCoins(30);
-    setLevel(1);
-    const pets = dataManager.getPets();
-    setPet(
-      pets && pets.length > 0
-        ? pets[0]
-        : {
-            id: "cat",
-            name: "Bé Miu Miu",
-            emoji: "🐱",
-            sound: "Meo meo~",
-            hunger: 80,
-            happiness: 90,
-          },
-    );
-    setStats({
-      language: { completed: 0, correct: 0 },
-      math: { completed: 0, correct: 0 },
-      logic: { completed: 0, correct: 0 },
-    });
+  const handleResetData = async () => {
+    applyDefaultProgress();
+    if (currentUser?.id) {
+      await supabaseService.syncProgress(DEFAULT_PROGRESS, currentUser.id);
+    }
   };
 
   return (
@@ -502,6 +536,10 @@ export default function App() {
         onOpenAdmin={() => {
           setIsProfileOpen(false);
           setCurrentScreen("admin");
+        }}
+        onOpenParent={() => {
+          setIsProfileOpen(false);
+          setIsParentOpen(true);
         }}
         onLogout={handleLogout}
         onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
