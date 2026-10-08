@@ -2,19 +2,42 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-// Mapping pet types to high-quality rigged 3D models with animations
-const MODEL_MAP = {
-  fox: "/models/fox.glb",
-  dog: "/models/fox.glb",
-  cat: "/models/fox.glb",
-  bunny: "/models/fox.glb",
-  panda: "/models/duck.glb",
-  penguin: "/models/duck.glb",
-  duck: "/models/duck.glb",
-  horse: "/models/horse.glb",
-  parrot: "/models/parrot.glb",
-  flamingo: "/models/flamingo.glb"
-};
+// Intelligent mapping from pet type & name to actual 3D rigged models
+export function resolveModelUrl(petType = "", petName = "") {
+  const typeStr = (petType || "").toLowerCase();
+  const nameStr = (petName || "").toLowerCase();
+  const combined = `${typeStr} ${nameStr}`;
+
+  if (combined.includes("dragon") || combined.includes("rồng") || combined.includes("rong")) {
+    return "/models/dragon.glb";
+  }
+  if (combined.includes("dog") || combined.includes("cún") || combined.includes("cun") || combined.includes("chó") || combined.includes("corgi")) {
+    return "/models/dog.glb";
+  }
+  if (combined.includes("panda") || combined.includes("gấu") || combined.includes("gau")) {
+    return "/models/panda.glb";
+  }
+  if (combined.includes("horse") || combined.includes("ngựa") || combined.includes("ngua")) {
+    return "/models/horse.glb";
+  }
+  if (combined.includes("duck") || combined.includes("vịt") || combined.includes("vit")) {
+    return "/models/duck.glb";
+  }
+  if (combined.includes("parrot") || combined.includes("vẹt") || combined.includes("vet")) {
+    return "/models/parrot.glb";
+  }
+  if (combined.includes("flamingo") || combined.includes("hồng hạc") || combined.includes("hong hac")) {
+    return "/models/flamingo.glb";
+  }
+  if (combined.includes("stork") || combined.includes("cò") || combined.includes("co")) {
+    return "/models/stork.glb";
+  }
+  if (combined.includes("fox") || combined.includes("cáo") || combined.includes("cao")) {
+    return "/models/fox.glb";
+  }
+
+  return "/models/fox.glb";
+}
 
 /**
  * Pet3DCanvas - Real 3D Skeletal Rigged Animals via Three.js GLTFLoader
@@ -26,6 +49,7 @@ const MODEL_MAP = {
  */
 export default function Pet3DCanvas({
   petType = "fox",
+  petName = "",
   action = "idle",
   activeHat = null,
   onPetClick,
@@ -177,7 +201,7 @@ export default function Pet3DCanvas({
     islandGroup.add(groundShadow);
 
     // 4. Load & Auto-Frame 3D Animal Model
-    const modelUrl = MODEL_MAP[petType] || MODEL_MAP.fox;
+    const modelUrl = resolveModelUrl(petType, petName);
     const loader = new GLTFLoader();
 
     // Pivot root that handles rotation & jumping
@@ -340,7 +364,7 @@ export default function Pet3DCanvas({
       }
       renderer.dispose();
     };
-  }, [petType]);
+  }, [petType, petName]);
 
   return (
     <div

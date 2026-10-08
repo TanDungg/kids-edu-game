@@ -12,7 +12,11 @@ import {
   Check, 
   Crown,
   Hand,
-  Gamepad2
+  Gamepad2,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { dataManager } from '../services/dataManager';
@@ -78,6 +82,16 @@ export default function PetSanctuary({
   // 3D Canvas real-time action triggers
   const [pet3DAction, setPet3DAction] = useState('idle');
   const [pet3DTrigger, setPet3DTrigger] = useState(0);
+
+  // Pet selection modal & scroll refs
+  const [showPetModal, setShowPetModal] = useState(false);
+  const petScrollRef = useRef(null);
+
+  const scrollPets = (direction) => {
+    if (!petScrollRef.current) return;
+    const offset = direction === 'left' ? -200 : 200;
+    petScrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
 
   const trigger3DAction = (act) => {
     setPet3DAction(act);
@@ -379,71 +393,149 @@ export default function PetSanctuary({
             zIndex: 0
           }} />
 
-          {/* 1. Pet Carousel Selector (3D Pills) */}
+          {/* Pet Selector Header with Navigation & Grid View */}
           <div style={{
             width: '100%',
             display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            padding: '4px 4px 12px 4px',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            zIndex: 2
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '8px',
+            padding: '0 4px',
+            zIndex: 3
           }}>
-            {pets.map((p) => {
-              const isSelected = selectedPet.id === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    sounds.playClick();
-                    sounds.playStar();
-                    setSelectedPet(p);
-                    if (onUpdatePet) onUpdatePet(p);
-                    setActionMessage(`${p.name} rất vui được làm bạn đồng hành cùng bé! ✨`);
-                  }}
-                  style={{
-                    flexShrink: 0,
-                    padding: isSelected ? '7px 14px' : '6px 12px',
-                    borderRadius: '20px',
-                    border: isSelected ? '2.5px solid #facc15' : '2px solid #e2e8f0',
-                    background: isSelected 
-                      ? 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)' 
-                      : '#ffffff',
-                    color: isSelected ? '#713f12' : '#64748b',
-                    fontWeight: 900,
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    cursor: 'pointer',
-                    transform: isSelected ? 'scale(1.04)' : 'scale(1)',
-                    boxShadow: isSelected 
-                      ? '0 8px 18px rgba(250, 204, 21, 0.45), inset 0 2px 2px #ffffff' 
-                      : '0 2px 6px rgba(0,0,0,0.04)',
-                    transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                >
-                  {get3DPetAsset(p)?.image3d ? (
-                    <img 
-                      src={get3DPetAsset(p).image3d} 
-                      alt={p.name}
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '8px',
-                        objectFit: 'cover',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
-                      }} 
-                    />
-                  ) : (
-                    <span style={{ fontSize: '20px' }}>{p.emoji}</span>
-                  )}
-                  <span>{p.name}</span>
-                  {isSelected && <Sparkles size={13} color="#ca8a04" />}
-                </button>
-              );
-            })}
+            <span style={{ fontSize: '13px', fontWeight: 900, color: '#15803d', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span>🐾</span> Chọn Bạn Thú Cưng ({pets.length})
+            </span>
+            <button
+              onClick={() => setShowPetModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 12px',
+                borderRadius: '12px',
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                color: '#166534',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+              }}
+            >
+              <LayoutGrid size={13} />
+              <span>Xem tất cả</span>
+            </button>
+          </div>
+
+          {/* 1. Pet Carousel Selector with Prev/Next buttons */}
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            position: 'relative',
+            zIndex: 2,
+            marginBottom: '4px'
+          }}>
+            <button
+              onClick={() => scrollPets('left')}
+              aria-label="Cuộn sang trái"
+              title="Xem bạn thú trước"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '2px solid #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                color: '#334155'
+              }}
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <div 
+              ref={petScrollRef}
+              style={{
+                display: 'flex',
+                gap: '8px',
+                overflowX: 'auto',
+                padding: '4px 4px 8px 4px',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                scrollBehavior: 'smooth',
+                flex: 1
+              }}
+            >
+              {pets.map((p) => {
+                const isSelected = selectedPet.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      sounds.playClick();
+                      sounds.playStar();
+                      setSelectedPet(p);
+                      if (onUpdatePet) onUpdatePet(p);
+                      setActionMessage(`${p.name} rất vui được làm bạn đồng hành cùng bé! ✨`);
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      padding: isSelected ? '8px 16px' : '7px 13px',
+                      borderRadius: '20px',
+                      border: isSelected ? '2.5px solid #facc15' : '2px solid #e2e8f0',
+                      background: isSelected 
+                        ? 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)' 
+                        : '#ffffff',
+                      color: isSelected ? '#713f12' : '#64748b',
+                      fontWeight: 900,
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      transform: isSelected ? 'scale(1.04)' : 'scale(1)',
+                      boxShadow: isSelected 
+                        ? '0 8px 18px rgba(250, 204, 21, 0.45), inset 0 2px 2px #ffffff' 
+                        : '0 2px 6px rgba(0,0,0,0.04)',
+                      transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                  >
+                    <span style={{ fontSize: '20px' }}>{p.emoji || '🐾'}</span>
+                    <span>{p.name}</span>
+                    {isSelected && <Sparkles size={13} color="#ca8a04" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => scrollPets('right')}
+              aria-label="Cuộn sang phải"
+              title="Xem bạn thú tiếp theo"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '2px solid #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                color: '#334155'
+              }}
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
 
           {/* 2. 3D Floating Stage Island */}
@@ -455,7 +547,7 @@ export default function PetSanctuary({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '10px 0',
+            margin: '6px 0',
             zIndex: 1
           }}>
             {/* Interactive Comic Speech Bubble */}
@@ -530,6 +622,7 @@ export default function PetSanctuary({
             >
               <Pet3DCanvas 
                 petType={selectedPet.id}
+                petName={selectedPet.name}
                 action={pet3DAction}
                 actionTrigger={pet3DTrigger}
                 activeHat={activeHat}
@@ -999,6 +1092,131 @@ export default function PetSanctuary({
           </div>
         </div>
       </div>
+
+      {/* Modal Chọn Tất Cả Bạn Thú (Full Pet Grid Modal) */}
+      {showPetModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '28px',
+            width: '100%',
+            maxWidth: '520px',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '3px solid #86efac',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '2px solid #f1f5f9',
+              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '24px' }}>🐾</span>
+                <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#166534', margin: 0 }}>
+                  Chọn Bạn Thú Đồng Hành
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPetModal(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748b'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Grid Pets list */}
+            <div style={{
+              padding: '16px',
+              overflowY: 'auto',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gap: '12px'
+            }}>
+              {pets.map((p) => {
+                const isSelected = selectedPet.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      sounds.playClick();
+                      sounds.playStar();
+                      setSelectedPet(p);
+                      if (onUpdatePet) onUpdatePet(p);
+                      setActionMessage(`${p.name} rất vui được làm bạn đồng hành cùng bé! ✨`);
+                      setShowPetModal(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '14px 10px',
+                      borderRadius: '20px',
+                      border: isSelected ? '3px solid #facc15' : '2px solid #e2e8f0',
+                      background: isSelected ? 'linear-gradient(180deg, #fef08a 0%, #fde047 100%)' : '#ffffff',
+                      cursor: 'pointer',
+                      transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 8px 16px rgba(250, 204, 21, 0.35)' : '0 2px 6px rgba(0,0,0,0.04)',
+                      transition: 'all 0.2s ease',
+                      gap: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '38px', lineHeight: 1 }}>{p.emoji || '🐾'}</span>
+                    <span style={{
+                      fontWeight: 900,
+                      fontSize: '13px',
+                      color: isSelected ? '#713f12' : '#1e293b',
+                      textAlign: 'center'
+                    }}>
+                      {p.name}
+                    </span>
+                    {isSelected && (
+                      <span style={{
+                        fontSize: '10.5px',
+                        fontWeight: 900,
+                        color: '#854d0e',
+                        background: 'rgba(255,255,255,0.7)',
+                        padding: '2px 8px',
+                        borderRadius: '999px'
+                      }}>
+                        Đang chọn ★
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
