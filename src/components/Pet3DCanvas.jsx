@@ -5,8 +5,8 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 // Mapping pet types to high-quality rigged 3D models with animations
 const MODEL_MAP = {
   fox: "/models/fox.glb",
-  dog: "/models/fox.glb", // High quality animated canine
-  cat: "/models/fox.glb", // Feline agile animation
+  dog: "/models/fox.glb",
+  cat: "/models/fox.glb",
   bunny: "/models/fox.glb",
   panda: "/models/duck.glb",
   penguin: "/models/duck.glb",
@@ -19,11 +19,10 @@ const MODEL_MAP = {
 /**
  * Pet3DCanvas - Real 3D Skeletal Rigged Animals via Three.js GLTFLoader
  * Features:
- * - Professional 3D models with skeletal bones & anatomical textures (PBR)
- * - Real animation clips (Idle / Survey / Walk / Run) exported from Blender
- * - Drag/touch to orbit 360° around the pet in real-time
- * - Studio lighting setup with soft ambient and dynamic shadows
- * - Action triggers: 'idle', 'pet', 'jump', 'eat', 'play'
+ * - Perfectly auto-framed, centered, and scaled 3D animal models
+ * - Real animation clips (Idle / Survey / Walk / Run) from Blender
+ * - 360° touch/mouse orbit interaction
+ * - Cinematic studio lighting with real-time soft shadows
  */
 export default function Pet3DCanvas({
   petType = "fox",
@@ -40,12 +39,12 @@ export default function Pet3DCanvas({
     actionTimer: 0,
     isDragging: false,
     prevMouseX: 0,
-    targetRotationY: 0,
-    currentRotationY: 0,
+    targetRotationY: 0.35, // Initial natural 3/4 angle
+    currentRotationY: 0.35,
     mixer: null,
     actionsMap: {},
     currentClipName: null,
-    modelRoot: null
+    pivotRoot: null
   });
 
   // Track action triggers and switch animation clips
@@ -60,7 +59,6 @@ export default function Pet3DCanvas({
     const availableClips = Object.keys(actionsMap);
 
     if (availableClips.includes("Survey") || availableClips.includes("Walk") || availableClips.includes("Run")) {
-      // Fox / Dog / Cat rich animations
       if (action === "idle") {
         targetClip = "Survey";
       } else if (action === "pet") {
@@ -71,7 +69,6 @@ export default function Pet3DCanvas({
         targetClip = "Walk";
       }
     } else {
-      // Single/Dual clip models (Horse, Parrot, etc.)
       targetClip = availableClips[0];
     }
 
@@ -85,9 +82,9 @@ export default function Pet3DCanvas({
       nextAction.reset().fadeIn(0.3).play();
 
       if (action === "pet") {
-        nextAction.setEffectiveTimeScale(0.75); // Gentle pet speed
+        nextAction.setEffectiveTimeScale(0.8);
       } else if (action === "jump" || action === "play") {
-        nextAction.setEffectiveTimeScale(1.4); // Exciting speed
+        nextAction.setEffectiveTimeScale(1.35);
       } else {
         nextAction.setEffectiveTimeScale(1.0);
       }
@@ -102,14 +99,15 @@ export default function Pet3DCanvas({
 
     setIsLoading(true);
 
-    // 1. Scene, Camera, Renderer
+    // 1. Scene & Setup
     const scene = new THREE.Scene();
 
-    const width = container.clientWidth || 320;
-    const height = container.clientHeight || 280;
+    const width = container.clientWidth || 340;
+    const height = container.clientHeight || 320;
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 1.3, 3.8);
+    // Camera positioned at eye level for dramatic, clear view
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    camera.position.set(0, 0.35, 3.2);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
@@ -119,67 +117,73 @@ export default function Pet3DCanvas({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
-    // 2. Realistic Studio Lighting
-    const ambientLight = new THREE.AmbientLight(0xfff7ed, 1.6);
+    // 2. Cinematic Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xfffbeb, 1.8);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    mainLight.position.set(3, 5, 4);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1024;
-    mainLight.shadow.mapSize.height = 1024;
-    mainLight.shadow.bias = -0.001;
-    scene.add(mainLight);
+    // Key Light (warm sunlight)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    keyLight.position.set(3.5, 5, 4);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
 
+    // Fill Light (soft sky tone)
     const fillLight = new THREE.DirectionalLight(0xbae6fd, 1.2);
-    fillLight.position.set(-3, 3, -2);
+    fillLight.position.set(-3.5, 2.5, -2);
     scene.add(fillLight);
 
-    const bottomGlow = new THREE.PointLight(0x86efac, 0.8, 8);
-    bottomGlow.position.set(0, -0.6, 1);
-    scene.add(bottomGlow);
+    // Rim Light (edge highlight on fur)
+    const rimLight = new THREE.DirectionalLight(0xfef08a, 1.4);
+    rimLight.position.set(0, 4, -4);
+    scene.add(rimLight);
 
-    // 3. 3D Floating Grass Podium
+    // 3. Floating Grass Island & Shadow
     const islandGroup = new THREE.Group();
     scene.add(islandGroup);
 
-    const podiumGeo = new THREE.CylinderGeometry(1.4, 1.25, 0.28, 36);
+    // Thin elegant podium placed strictly underneath feet
+    const podiumGeo = new THREE.CylinderGeometry(1.25, 1.1, 0.14, 36);
     const podiumMat = new THREE.MeshStandardMaterial({
       color: 0x22c55e,
-      roughness: 0.6,
+      roughness: 0.55,
       metalness: 0.05
     });
     const podium = new THREE.Mesh(podiumGeo, podiumMat);
-    podium.position.y = -0.75;
+    podium.position.y = -0.72;
     podium.receiveShadow = true;
     islandGroup.add(podium);
 
-    // Top soft grass rim
-    const rimGeo = new THREE.CylinderGeometry(1.42, 1.42, 0.06, 36);
-    const rimMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.5 });
-    const rim = new THREE.Mesh(rimGeo, rimMat);
-    rim.position.y = -0.61;
-    rim.receiveShadow = true;
-    islandGroup.add(rim);
+    // Top soft grass layer
+    const grassTopGeo = new THREE.CylinderGeometry(1.27, 1.27, 0.04, 36);
+    const grassTopMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.4 });
+    const grassTop = new THREE.Mesh(grassTopGeo, grassTopMat);
+    grassTop.position.y = -0.64;
+    grassTop.receiveShadow = true;
+    islandGroup.add(grassTop);
 
-    // Dynamic ground shadow disk
-    const shadowGeo = new THREE.CircleGeometry(1.05, 32);
+    // Soft ground contact shadow
+    const shadowGeo = new THREE.CircleGeometry(1.0, 32);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x0f172a,
       transparent: true,
-      opacity: 0.25
+      opacity: 0.28
     });
     const groundShadow = new THREE.Mesh(shadowGeo, shadowMat);
     groundShadow.rotation.x = -Math.PI / 2;
-    groundShadow.position.y = -0.57;
+    groundShadow.position.y = -0.61;
     islandGroup.add(groundShadow);
 
-    // 4. Load High-Quality 3D Model with Skeletal Rig
+    // 4. Load & Auto-Frame 3D Animal Model
     const modelUrl = MODEL_MAP[petType] || MODEL_MAP.fox;
     const loader = new GLTFLoader();
-    let mixer = null;
-    let modelGroup = new THREE.Group();
-    scene.add(modelGroup);
+
+    // Pivot root that handles rotation & jumping
+    const pivot = new THREE.Group();
+    scene.add(pivot);
+    stateRef.current.pivotRoot = pivot;
 
     loader.load(
       modelUrl,
@@ -187,38 +191,43 @@ export default function Pet3DCanvas({
         setIsLoading(false);
         const model = gltf.scene;
 
-        // Auto-center and fit model size
+        // Calculate true bounding box
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
-        // Target height ~ 1.2 units
+        // Target size: 2.35 units in viewport (large, crisp and prominent)
         const maxDim = Math.max(size.x, size.y, size.z);
-        const targetScale = 1.25 / (maxDim || 1);
-        model.scale.setScalar(targetScale);
+        const targetScale = 2.35 / (maxDim || 1);
 
-        // Center on top of podium
-        model.position.x = -center.x * targetScale;
-        model.position.y = -box.min.y * targetScale - 0.58;
-        model.position.z = -center.z * targetScale;
+        // Center model geometry exactly at origin
+        model.position.set(-center.x, -center.y, -center.z);
 
-        // Enable shadows and enhance materials
+        // Wrapper to apply uniform scale
+        const modelWrapper = new THREE.Group();
+        modelWrapper.add(model);
+        modelWrapper.scale.setScalar(targetScale);
+
+        // Calculate bottom feet offset so feet stand firmly on the grass (-0.62)
+        const feetYOffset = (center.y - box.min.y) * targetScale;
+        modelWrapper.position.y = -0.62 + feetYOffset;
+
+        // Enhance materials and cast shadows
         model.traverse((node) => {
           if (node.isMesh) {
             node.castShadow = true;
             node.receiveShadow = true;
             if (node.material) {
-              node.material.roughness = Math.min(0.85, node.material.roughness || 0.6);
+              node.material.roughness = Math.min(0.75, node.material.roughness || 0.6);
             }
           }
         });
 
-        modelGroup.add(model);
-        stateRef.current.modelRoot = modelGroup;
+        pivot.add(modelWrapper);
 
-        // Setup Skeletal Animation Mixer
+        // Setup Animation Mixer
         if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(model);
+          const mixer = new THREE.AnimationMixer(model);
           stateRef.current.mixer = mixer;
 
           const actionsMap = {};
@@ -227,7 +236,7 @@ export default function Pet3DCanvas({
           });
           stateRef.current.actionsMap = actionsMap;
 
-          // Start default idle animation
+          // Default idle animation: Survey / Idle
           const defaultClip = actionsMap["Survey"] || actionsMap[gltf.animations[0].name];
           if (defaultClip) {
             defaultClip.play();
@@ -242,7 +251,7 @@ export default function Pet3DCanvas({
       }
     );
 
-    // 5. 360 Degree Drag / Touch Orbit
+    // 5. Smooth Drag / Touch 360° Orbit Interaction
     const handlePointerDown = (e) => {
       stateRef.current.isDragging = true;
       stateRef.current.prevMouseX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
@@ -267,7 +276,7 @@ export default function Pet3DCanvas({
     window.addEventListener("mouseup", handlePointerUp);
     window.addEventListener("touchend", handlePointerUp);
 
-    // 6. Smooth 60 FPS Render Loop
+    // 6. 60 FPS Animation & Render Loop
     let animationFrameId;
     const clock = new THREE.Clock();
 
@@ -276,29 +285,29 @@ export default function Pet3DCanvas({
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // Update Skeletal Animations
+      // Update skeletal bone animations
       if (stateRef.current.mixer) {
         stateRef.current.mixer.update(delta);
       }
 
-      // Smooth 360 degree drag rotation
+      // Smooth 360° rotation lerp
       stateRef.current.currentRotationY = THREE.MathUtils.lerp(
         stateRef.current.currentRotationY,
         stateRef.current.targetRotationY,
         0.12
       );
-      modelGroup.rotation.y = stateRef.current.currentRotationY;
+      pivot.rotation.y = stateRef.current.currentRotationY;
 
-      // Gentle floating podium motion
-      islandGroup.position.y = Math.sin(time * 2.2) * 0.04;
-      groundShadow.scale.setScalar(1 - Math.sin(time * 2.2) * 0.1);
+      // Gentle floating motion
+      islandGroup.position.y = Math.sin(time * 2.2) * 0.035;
+      groundShadow.scale.setScalar(1 - Math.sin(time * 2.2) * 0.08);
 
-      // Bounce reaction if jumping
+      // Bounce reaction on jump / play
       if (stateRef.current.currentAction === "jump" || stateRef.current.currentAction === "play") {
-        const jumpH = Math.abs(Math.sin(time * 9)) * 0.22;
-        modelGroup.position.y = jumpH;
+        const jumpH = Math.abs(Math.sin(time * 9)) * 0.25;
+        pivot.position.y = jumpH;
       } else {
-        modelGroup.position.y = THREE.MathUtils.lerp(modelGroup.position.y, 0, 0.1);
+        pivot.position.y = THREE.MathUtils.lerp(pivot.position.y, 0, 0.1);
       }
 
       renderer.render(scene, camera);
@@ -339,7 +348,7 @@ export default function Pet3DCanvas({
       onClick={onPetClick}
       style={{
         width: "100%",
-        height: "280px",
+        height: "320px",
         position: "relative",
         cursor: "grab",
         touchAction: "none",

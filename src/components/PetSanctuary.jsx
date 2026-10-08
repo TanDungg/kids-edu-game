@@ -516,7 +516,7 @@ export default function PetSanctuary({
               style={{
                 position: 'relative',
                 width: '100%',
-                height: '290px',
+                height: '320px',
                 cursor: 'grab',
                 userSelect: 'none',
                 touchAction: 'none',
